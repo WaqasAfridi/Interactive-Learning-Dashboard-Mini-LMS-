@@ -1,15 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>EduPro - Course Details</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       rel="stylesheet"
     />
+
+    <!-- html2canvas and jsPDF for certificate download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+      /* Print only certificate modal */
+      @media print {
+        body * {
+          visibility: hidden !important;
+        }
+        #certificate-content,
+        #certificate-content * {
+          visibility: visible !important;
+        }
+        #certificate-content {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+        }
+      }
+
+      /* small animation */
+      .fade-in {
+        animation: fadeIn 0.32s ease both;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* small focus ring for keyboard users */
+      .focus-ring:focus {
+        outline: 3px solid rgba(59, 130, 246, 0.35);
+        outline-offset: 2px;
+      }
+    </style>
   </head>
+
   <body class="bg-gray-50 text-gray-800 font-sans flex flex-col min-h-screen">
     <nav class="bg-white shadow-md fixed w-full z-50 top-0 left-0">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -54,26 +100,26 @@
       </div>
     </nav>
 
-    <div
+    <main
       class="pt-24 pb-12 max-w-7xl mx-auto px-4 flex-grow"
       id="course-detail-container"
     >
       <div class="bg-white p-8 rounded-xl shadow-lg text-center text-gray-500">
         Loading course details...
       </div>
-    </div>
+    </main>
 
     <footer class="bg-gray-800 text-white py-8 text-center mt-auto">
       <p>&copy; 2025 EduPro LMS. All rights reserved.</p>
     </footer>
 
-    <!-- ======= courses-json-loader (insert BEFORE script.js) ======= -->
+    <!-- lightweight loader pattern (keeps existing behavior) -->
     <script>
       (function () {
         try {
           if (!localStorage.getItem("lmsCourses")) {
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", "courses.json", false); // synchronous on purpose for a small project
+            xhr.open("GET", "courses.json", false);
             xhr.send(null);
             if (xhr.status >= 200 && xhr.status < 300) {
               localStorage.setItem("lmsCourses", xhr.responseText);
@@ -82,333 +128,720 @@
             }
           }
         } catch (e) {
-          console.error("Synchronous load of courses.json failed:", e);
+          console.error("Synchronous load failed:", e);
         }
-
         try {
           window.coursesData = JSON.parse(
             localStorage.getItem("lmsCourses") || "[]"
           );
         } catch (e) {
-          console.error("Failed to parse lmsCourses from localStorage:", e);
+          console.error("Failed to parse lmsCourses:", e);
           window.coursesData = [];
         }
       })();
     </script>
-    <!-- ================================================================ -->
+
     <script src="script.js"></script>
+
     <script>
-      const params = new URLSearchParams(window.location.search);
-      const cId = parseInt(params.get("id"));
-      const container = document.getElementById("course-detail-container");
-      const currentUser = getCurrentUser(); // Get user info
+      /* ------------------------------------------------------------
+         Course Detail page: enhanced features + rich certificate modal
+         ------------------------------------------------------------ */
 
-      // Define course variable globally
-      const course = (window.coursesData || []).find((c) => c.id === cId);
-
-      // --- Start Immediate Rendering Logic ---
-
-      if (!course) {
-        container.innerHTML = `
-            <div class="bg-white p-8 rounded-xl shadow-lg text-center text-red-500">
-                Course not found (ID: ${cId}).
-            </div>`;
-      } else {
-        // Defensive: ensure progress shape
-        const progress = getProgress(cId) || {
-          completedLessons: [],
-          quizScore: null,
-        };
-
-        // Check enrollment status (consider enrolled if explicit flag or any progress)
-        const isEnrolled =
-          Boolean(progress.enrolled) ||
-          (Array.isArray(progress.completedLessons) &&
-            progress.completedLessons.length > 0) ||
-          progress.quizScore !== null;
-
-        const totalLessons = Array.isArray(course.lessons)
-          ? course.lessons.length
-          : 0;
-        const lessonsCompleted = Array.isArray(progress.completedLessons)
-          ? progress.completedLessons.length
-          : 0;
-        const progressPercent = calculateCourseProgress(cId);
-
-        let nextLessonId =
-          lessonsCompleted > 0 && lessonsCompleted < totalLessons
-            ? course.lessons[lessonsCompleted].id
-            : (course.lessons && course.lessons[0] && course.lessons[0].id) ||
-              1;
-
-        const isCourseComplete = progressPercent === 100;
-        const quizLength = Array.isArray(course.quiz) ? course.quiz.length : 0;
-        const quizPassed =
-          progress.quizScore !== null &&
-          progress.quizScore >=
-            (typeof PASS_SCORE !== "undefined" ? PASS_SCORE : 3);
-        const isCertified = isCourseComplete && quizPassed;
-
-        // --- Dynamic Button Logic ---
-        let actionButtonHTML = "";
-
-        if (isCertified) {
-          actionButtonHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-green-600 font-bold mr-2"><i class="fas fa-check-circle"></i> Certified!</span>
-                    <button onclick="viewCertificate(${cId})" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition">View Certificate</button>
-                </div>
-            `;
-        } else if (
-          lessonsCompleted === totalLessons &&
-          quizLength > 0 &&
-          progress.quizScore === null
-        ) {
-          actionButtonHTML = `
-                <a href="quiz.html?courseId=${cId}" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">Take Final Quiz (${quizLength} Qs)</a>
-            `;
-        } else if (isEnrolled) {
-          actionButtonHTML = `
-                <a href="lesson.html?courseId=${cId}&lessonId=${nextLessonId}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition">
-                    <i class="fas fa-play-circle mr-2"></i> ${
-                      lessonsCompleted > 0 ? "Continue Course" : "Start Course"
-                    }
-                </a>
-            `;
-        } else {
-          // Not enrolled
-          actionButtonHTML = `
-                <button onclick="enrollAndStart(${cId})" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700 transition">
-                    <i class="fas fa-user-plus mr-2"></i> Enroll Now (Free)
-                </button>
-            `;
-        }
-
-        // --- Render Course Details ---
-        container.innerHTML = `
-            <div class="bg-white rounded-xl shadow-xl overflow-hidden">
-                <div class="md:flex">
-                    <div class="md:flex-shrink-0">
-                        <img class="h-64 w-full object-cover md:w-64" src="${
-                          course.image
-                        }" alt="${course.title}">
-                    </div>
-                    <div class="p-8 flex-1">
-                        <div class="uppercase tracking-wide text-sm text-blue-600 font-bold">${
-                          course.category
-                        } • ${course.level || "N/A"}</div>
-                        <h1 class="block mt-1 text-4xl leading-tight font-extrabold text-gray-900">${
-                          course.title
-                        }</h1>
-                        <p class="mt-2 text-gray-500 text-lg">${
-                          course.description
-                        }</p>
-                        
-                        <div class="mt-4 flex items-center space-x-6 text-gray-600">
-                            <span><i class="fas fa-clock mr-1"></i> ${
-                              course.duration || "N/A"
-                            }</span>
-                            <span><i class="fas fa-list-ul mr-1"></i> ${totalLessons} Lessons</span>
-                            <span><i class="fas fa-star text-yellow-500 mr-1"></i> ${
-                              course.rating ? course.rating.toFixed(1) : "5.0"
-                            } (${course.reviews || 0} reviews)</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-blue-50 p-6 border-t">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-semibold text-blue-700">Course Progress</span>
-                        <span class="font-bold text-blue-800">${progressPercent}%</span>
-                    </div>
-                    <div class="w-full bg-blue-200 rounded-full h-3">
-                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
-                    </div>
-                    ${
-                      // Show quiz status messages only if quiz answered / passed/failed
-                      quizPassed
-                        ? '<p class="text-sm text-green-600 mt-2 font-medium"><i class="fas fa-medal"></i> Quiz Passed!</p>'
-                        : progress.quizScore !== null
-                        ? '<p class="text-sm text-red-600 mt-2 font-medium"><i class="fas fa-times-circle"></i> Quiz Failed. Retry possible.</p>'
-                        : // not attempted: if user not enrolled or not finished lessons we can show subtle hint
-                        lessonsCompleted === totalLessons && quizLength > 0
-                        ? '<p class="text-sm text-orange-600 mt-2 font-medium">All lessons completed — quiz available.</p>'
-                        : '<p class="text-sm text-gray-600 mt-2">Enroll and complete lessons to increase progress.</p>'
-                    }
-                </div>
-
-                <div class="p-6 border-t flex justify-end">
-                    ${actionButtonHTML}
-                </div>
-
-                <div class="p-8 border-t">
-                    <h2 class="text-2xl font-bold mb-4">Curriculum (${totalLessons} Lessons)</h2>
-                    <div class="space-y-3">
-                        ${
-                          Array.isArray(course.lessons) &&
-                          course.lessons.length > 0
-                            ? course.lessons
-                                .map((lesson, index) => {
-                                  const isDone =
-                                    Array.isArray(progress.completedLessons) &&
-                                    progress.completedLessons.includes(
-                                      lesson.id
-                                    );
-                                  const isNext =
-                                    isEnrolled &&
-                                    !isDone &&
-                                    lessonsCompleted === index;
-                                  return `
-                                <a href="lesson.html?courseId=${cId}&lessonId=${
-                                    lesson.id
-                                  }" class="flex items-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow transition ${
-                                    isDone
-                                      ? "border-l-4 border-green-500"
-                                      : isNext
-                                      ? "border-l-4 border-blue-500"
-                                      : "border border-gray-200"
-                                  }">
-                                    <i class="fas ${
-                                      isDone
-                                        ? "fa-check-circle text-green-500"
-                                        : "fa-circle text-gray-400"
-                                    } mr-4 text-xl"></i>
-                                    <div class="flex-1"><h3 class="font-semibold text-gray-800">${
-                                      lesson.title
-                                    }</h3></div>
-                                    ${
-                                      isNext
-                                        ? '<span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">NEXT</span>'
-                                        : ""
-                                    }
-                                </a>`;
-                                })
-                                .join("")
-                            : `<div class="text-gray-500 p-4">No lessons available for this course.</div>`
-                        }
-                        
-                        <div class="flex items-center p-4 rounded-lg border-2 ${
-                          progress.quizScore !== null
-                            ? quizPassed
-                              ? "border-green-500 bg-green-50"
-                              : "border-red-500 bg-red-50"
-                            : lessonsCompleted === totalLessons &&
-                              quizLength > 0
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-gray-200 bg-gray-50"
-                        }">
-                            <i class="fas fa-question-circle ${
-                              progress.quizScore !== null
-                                ? quizPassed
-                                  ? "text-green-500"
-                                  : "text-red-500"
-                                : "text-orange-500"
-                            } mr-4 text-xl"></i>
-                            <div class="flex-1"><h3 class="font-semibold text-gray-800">Final Course Quiz (${quizLength} Questions)</h3></div>
-                            ${
-                              progress.quizScore !== null
-                                ? `<span class="font-bold ${
-                                    quizPassed
-                                      ? "text-green-700"
-                                      : "text-red-700"
-                                  }">${quizPassed ? "PASSED" : "FAILED"} (${
-                                    progress.quizScore
-                                  }/${quizLength})</span>`
-                                : lessonsCompleted === totalLessons &&
-                                  quizLength > 0
-                                ? `<a href="quiz.html?courseId=${cId}" class="text-blue-600 hover:underline font-bold">Start Quiz</a>`
-                                : `<span class="text-gray-500 text-sm">Requires all lessons completed</span>`
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+      // Helpers
+      function escapeHtml(str) {
+        if (typeof str !== "string") return str;
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
       }
 
-      // --- Action Functions ---
+      // Get params and data
+      const params = new URLSearchParams(window.location.search);
+      const cId = parseInt(params.get("id"), 10);
+      const certIdQuery = params.get("certId");
+      const container = document.getElementById("course-detail-container");
+      const currentUser =
+        typeof getCurrentUser === "function" ? getCurrentUser() : null;
 
-      window.viewCertificate = function (courseId) {
-        const modal = document.getElementById("certificate-modal");
-        const courseData = (window.coursesData || []).find(
-          (c) => c.id === courseId
-        );
-        const pData = getProgress(courseId);
-        const user = getCurrentUser(); // Get real user
+      // Defensive: require course exists
+      const course = (window.coursesData || []).find((c) => c.id === cId);
 
-        if (!courseData || !pData || !user) {
-          alert("Error loading certificate data.");
+      // If requesting certificate verification via certId in URL, we handle below after UI renders.
+
+      // Render UI
+      function renderCourseDetail() {
+        if (!course) {
+          container.innerHTML = `
+            <div class="bg-white p-8 rounded-xl shadow-lg text-center text-red-500">
+              Course not found (ID: ${escapeHtml(String(cId))}).
+            </div>`;
           return;
         }
 
-        // Populate certificate details
-        document.getElementById("cert-course-title").innerText =
-          courseData.title;
+        // Safe progress object
+        const progress =
+          (typeof getProgress === "function" ? getProgress(cId) : {}) || {};
+        progress.completedLessons = Array.isArray(progress.completedLessons)
+          ? progress.completedLessons
+          : [];
+        const totalLessons = Array.isArray(course.lessons)
+          ? course.lessons.length
+          : 0;
+        const lessonsCompleted = progress.completedLessons.length || 0;
+        const quizLength = Array.isArray(course.quiz) ? course.quiz.length : 0;
+        const progressPercent =
+          typeof calculateCourseProgress === "function"
+            ? calculateCourseProgress(cId)
+            : 0;
+        const quizScore =
+          progress.quizScore === null || progress.quizScore === undefined
+            ? null
+            : progress.quizScore;
+        const quizPassed =
+          quizScore !== null &&
+          quizScore >= (typeof PASS_SCORE !== "undefined" ? PASS_SCORE : 3);
+        const isEnrolled =
+          Boolean(progress.enrolled) ||
+          lessonsCompleted > 0 ||
+          quizScore !== null;
+
+        // Last visited link
+        const lastVisited = getLastVisited ? getLastVisited(cId) : null;
+        const lastVisitedHref = lastVisited
+          ? `lesson.html?courseId=${cId}&lessonId=${lastVisited}`
+          : null;
+
+        // Build curriculum HTML with search bar, bookmarks and notes controls
+        const curriculumHtml = `
+          <div class="mb-4 flex items-center gap-3">
+            <input id="lesson-search" placeholder="Search curriculum..." class="w-full md:w-1/2 px-4 py-2 border rounded focus:ring focus:ring-blue-200 focus:outline-none" />
+            <button id="btn-resume" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 ${
+              !lastVisited ? "opacity-60 pointer-events-none" : ""
+            }">Resume</button>
+            <button id="btn-bookmark" title="Bookmark course" class="px-3 py-2 border rounded hover:bg-gray-50"><i class="fas fa-bookmark"></i></button>
+            <button id="btn-notes-toggle" title="My notes" class="px-3 py-2 border rounded hover:bg-gray-50"><i class="fas fa-sticky-note"></i></button>
+          </div>
+          <div id="notes-area" class="mb-4 hidden">
+            <textarea id="course-notes" rows="3" placeholder="Write notes about this course..." class="w-full p-3 border rounded-md"></textarea>
+            <div class="mt-2 flex gap-2">
+              <button id="save-notes" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save Notes</button>
+              <button id="clear-notes" class="px-4 py-2 border rounded hover:bg-gray-50">Clear</button>
+            </div>
+          </div>
+          <div id="lessons-list" class="space-y-2">
+            ${
+              Array.isArray(course.lessons) && course.lessons.length > 0
+                ? course.lessons
+                    .map((lesson, idx) => {
+                      const isDone = progress.completedLessons.includes(
+                        lesson.id
+                      );
+                      const isNext =
+                        isEnrolled && !isDone && lessonsCompleted === idx;
+                      return `
+                <a href="lesson.html?courseId=${cId}&lessonId=${
+                        lesson.id
+                      }" class="block p-4 rounded-lg transition shadow-sm ${
+                        isDone
+                          ? "border-l-4 border-green-500 bg-green-50"
+                          : isNext
+                          ? "border-l-4 border-blue-500 bg-blue-50"
+                          : "border bg-gray-50 hover:shadow"
+                      }">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <i class="fas ${
+                        isDone
+                          ? "fa-check-circle text-green-500"
+                          : "fa-play-circle text-gray-400"
+                      } text-lg"></i>
+                      <div>
+                        <div class="font-semibold">${escapeHtml(
+                          lesson.title
+                        )}</div>
+                        <div class="text-xs text-gray-500">${escapeHtml(
+                          lesson.content?.slice(0, 80) || ""
+                        )}...</div>
+                      </div>
+                    </div>
+                    <div class="text-xs text-gray-500">${
+                      idx + 1
+                    }/${totalLessons}</div>
+                  </div>
+                </a>
+              `;
+                    })
+                    .join("")
+                : `<div class="text-gray-500 p-4">No lessons added yet.</div>`
+            }
+          </div>
+        `;
+
+        container.innerHTML = `
+          <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+            <div class="md:flex">
+              <div class="md:flex-shrink-0">
+                <img class="h-64 w-full object-cover md:w-64" src="${escapeHtml(
+                  course.image || ""
+                )}" alt="${escapeHtml(course.title)}">
+              </div>
+              <div class="p-8 flex-1">
+                <div class="uppercase tracking-wide text-sm text-blue-600 font-bold">${escapeHtml(
+                  course.category || "Uncategorized"
+                )} • ${escapeHtml(course.level || "N/A")}</div>
+                <h1 class="block mt-1 text-4xl leading-tight font-extrabold text-gray-900">${escapeHtml(
+                  course.title
+                )}</h1>
+                <p class="mt-2 text-gray-500 text-lg">${escapeHtml(
+                  course.description || ""
+                )}</p>
+                <div class="mt-4 flex flex-wrap items-center gap-6 text-gray-600">
+                  <span class="flex items-center gap-2"><i class="fas fa-clock mr-1"></i> ${escapeHtml(
+                    course.duration || "N/A"
+                  )}</span>
+                  <span class="flex items-center gap-2"><i class="fas fa-list-ul mr-1"></i> ${totalLessons} Lessons</span>
+                  <span class="flex items-center gap-2"><i class="fas fa-star text-yellow-500 mr-1"></i> ${
+                    course.rating ? course.rating.toFixed(1) : "5.0"
+                  } (${course.reviews || 0} reviews)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-blue-50 p-6 border-t">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-4">
+                  <span class="font-semibold text-blue-700">Course Progress</span>
+                  <div class="text-sm text-gray-600">${lessonsCompleted} / ${totalLessons} lessons</div>
+                </div>
+                <div class="font-bold text-blue-800">${progressPercent}%</div>
+              </div>
+
+              <div class="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
+                <div id="animated-progress" class="bg-blue-600 h-3 rounded-full" style="width:${progressPercent}%; transition: width .9s ease;"></div>
+              </div>
+
+              <div id="progress-extra" class="mt-3 text-sm">
+                ${
+                  quizScore !== null
+                    ? quizPassed
+                      ? `<span class="text-green-600"><i class="fas fa-medal"></i> Quiz passed: ${quizScore}/${quizLength}</span>`
+                      : `<span class="text-red-600"><i class="fas fa-times-circle"></i> Quiz scored: ${quizScore}/${quizLength}</span>`
+                    : lessonsCompleted === totalLessons && quizLength > 0
+                    ? `<span class="text-orange-600"><i class="fas fa-exclamation-circle"></i> All lessons complete — Final quiz available</span>`
+                    : `<span class="text-gray-600">Complete lessons & take the quiz to earn a certificate</span>`
+                }
+              </div>
+            </div>
+
+            <div class="p-6 border-t flex justify-between items-center gap-4">
+              <div>${
+                isEnrolled
+                  ? `<span class="text-sm text-gray-600">You are enrolled</span>`
+                  : `<span class="text-sm text-gray-600">Not enrolled</span>`
+              }</div>
+              <div class="flex items-center gap-3">
+                ${
+                  isEnrolled && quizScore !== null && quizPassed
+                    ? `<button id="btn-view-cert" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Certificate</button>`
+                    : ""
+                }
+                ${
+                  isEnrolled
+                    ? `<a href="lesson.html?courseId=${cId}&lessonId=${
+                        lastVisited || course.lessons?.[0]?.id || 1
+                      }" class="px-4 py-2 border rounded hover:bg-gray-50">Go to Lessons</a>`
+                    : `<button onclick="enrollAndStart(${cId})" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Enroll & Start</button>`
+                }
+              </div>
+            </div>
+
+            <div class="p-8 border-t">
+              <h2 class="text-2xl font-bold mb-4">Curriculum</h2>
+              ${curriculumHtml}
+            </div>
+          </div>
+        `;
+
+        // Post-render wiring:
+        setupCurriculumControls();
+        showCertificateButtonIfEligible();
+        // If certId present in URL, auto-verify/show
+        if (certIdQuery) {
+          setTimeout(() => verifyAndShowCert(certIdQuery), 400);
+        }
+      }
+
+      // Save/read notes helpers
+      function notesKey(courseId) {
+        if (!currentUser) return `course_notes_${courseId}_guest`;
+        return `course_notes_${courseId}_${currentUser.email}`;
+      }
+
+      function setupCurriculumControls() {
+        const searchInput = document.getElementById("lesson-search");
+        const lessonsList = document.getElementById("lessons-list");
+        const notesArea = document.getElementById("notes-area");
+        const notesTextarea = document.getElementById("course-notes");
+        const btnNotesToggle = document.getElementById("btn-notes-toggle");
+        const btnSaveNotes = document.getElementById("save-notes");
+        const btnClearNotes = document.getElementById("clear-notes");
+        const btnBookmark = document.getElementById("btn-bookmark");
+        const btnResume = document.getElementById("btn-resume");
+
+        // prefill notes if any
+        try {
+          const existing = localStorage.getItem(notesKey(cId));
+          if (existing) notesTextarea.value = existing;
+        } catch (e) {}
+
+        btnNotesToggle.addEventListener("click", () => {
+          notesArea.classList.toggle("hidden");
+        });
+
+        btnSaveNotes.addEventListener("click", () => {
+          try {
+            localStorage.setItem(notesKey(cId), notesTextarea.value || "");
+            alert("Notes saved locally in your browser.");
+          } catch (e) {
+            console.warn("Failed to save notes:", e);
+            alert("Could not save notes (localStorage blocked).");
+          }
+        });
+
+        btnClearNotes.addEventListener("click", () => {
+          if (!confirm("Clear your notes for this course?")) return;
+          notesTextarea.value = "";
+          localStorage.removeItem(notesKey(cId));
+          alert("Notes cleared.");
+        });
+
+        btnBookmark.addEventListener("click", () => {
+          if (!currentUser) {
+            alert("Please log in to bookmark this course.");
+            return;
+          }
+          const bmKey = `bookmarks_${currentUser.email}`;
+          const existing = JSON.parse(localStorage.getItem(bmKey) || "[]");
+          if (existing.includes(cId)) {
+            alert("Course already bookmarked.");
+            return;
+          }
+          existing.push(cId);
+          localStorage.setItem(bmKey, JSON.stringify(existing));
+          alert(
+            "Bookmarked! You can find it on your dashboard (if implemented)."
+          );
+        });
+
+        // Resume button
+        btnResume.addEventListener("click", () => {
+          const last = getLastVisited && getLastVisited(cId);
+          if (last) {
+            window.location.href = `lesson.html?courseId=${cId}&lessonId=${last}`;
+          } else {
+            window.location.href = `lesson.html?courseId=${cId}&lessonId=${
+              course.lessons?.[0]?.id || 1
+            }`;
+          }
+        });
+
+        // search filter
+        searchInput.addEventListener("input", (e) => {
+          const q = (e.target.value || "").toLowerCase();
+          const nodes = lessonsList.querySelectorAll("a");
+          nodes.forEach((node) => {
+            const text = node.innerText.toLowerCase();
+            node.style.display = text.includes(q) ? "" : "none";
+          });
+        });
+      }
+
+      // certificate management
+      function showCertificateButtonIfEligible() {
+        const progress = getProgress ? getProgress(cId) : {};
+        const quizScore =
+          progress.quizScore !== null && progress.quizScore !== undefined
+            ? progress.quizScore
+            : null;
+        const progPercent =
+          typeof calculateCourseProgress === "function"
+            ? calculateCourseProgress(cId)
+            : 0;
+        // eligible if progress 100% and quiz passed
+        if (
+          progPercent === 100 &&
+          quizScore !== null &&
+          quizScore >= PASS_SCORE
+        ) {
+          // show certificate controls
+          const btn =
+            document.getElementById("btn-view-cert") ||
+            document.getElementById("btn-open-certificate");
+          if (btn) {
+            btn.classList.remove("hidden");
+            btn.addEventListener("click", () => openCertificateModal());
+          }
+        }
+      }
+
+      // Certificate storage helpers
+      function certificatesKey() {
+        return `edupro_certificates`;
+      }
+
+      function saveCertificateMeta(meta) {
+        try {
+          const key = certificatesKey();
+          const all = JSON.parse(localStorage.getItem(key) || "{}");
+          all[meta.certId] = meta;
+          localStorage.setItem(key, JSON.stringify(all));
+        } catch (e) {
+          console.error("saveCertificateMeta error", e);
+        }
+      }
+
+      function getCertificateMeta(certId) {
+        try {
+          const all = JSON.parse(
+            localStorage.getItem(certificatesKey()) || "{}"
+          );
+          return all[certId] || null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Generate unique certId - deterministic-ish
+      function generateCertId(userEmail, courseId) {
+        const raw = `${userEmail}::${courseId}::${Date.now()}`;
+        // simple base64-ish id (URL safe)
+        return btoa(unescape(encodeURIComponent(raw)))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      }
+
+      // Build certificate modal content + functions
+      function openCertificateModal(autoCertId = null) {
+        const modal = document.getElementById("certificate-modal");
+        const content = document.getElementById("certificate-preview");
+        const user = currentUser || { name: "Student", email: "guest" };
+        const p = getProgress ? getProgress(cId) : {};
+        const qScore = p.quizScore !== undefined ? p.quizScore : null;
+        const totalQ = Array.isArray(course.quiz) ? course.quiz.length : 0;
+
+        // populate dynamic fields
+        document.getElementById("cert-student-name").value =
+          user.name || "Student";
+        document.getElementById("cert-course-title").innerText = course.title;
         document.getElementById("cert-date").innerText =
-          new Date().toLocaleDateString("en-US", {
+          new Date().toLocaleDateString(undefined, {
             year: "numeric",
             month: "long",
             day: "numeric",
           });
-        document.getElementById("cert-score").innerText = `${pData.quizScore}/${
-          (courseData.quiz || []).length
-        }`;
+        document.getElementById("cert-score").innerText = `${
+          qScore || 0
+        }/${totalQ}`;
 
-        // --- NEW: Insert User Name ---
-        const nameElement = document.querySelector(
-          "#certificate-content h2.text-green-600"
-        );
-        if (nameElement) nameElement.innerText = user.name || "Student";
+        // If autoCertId provided (from verify link) try to load name from meta
+        if (autoCertId) {
+          const meta = getCertificateMeta(autoCertId);
+          if (meta) {
+            document.getElementById("cert-student-name").value =
+              meta.studentName ||
+              (currentUser && currentUser.name) ||
+              "Student";
+          }
+        }
 
         modal.classList.remove("hidden");
-        modal.classList.add("flex");
-      };
-    </script>
-    <div
-      id="certificate-modal"
-      class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-[100]"
-    >
-      <div
-        id="certificate-content"
-        class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-8 relative"
-      >
-        <button
-          onclick="document.getElementById('certificate-modal').classList.add('hidden')"
-          class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 text-2xl"
-        >
-          <i class="fas fa-times-circle"></i>
-        </button>
+        setTimeout(() => modal.classList.add("fade-in"), 20);
 
-        <div
-          class="text-center p-10 border-8 border-double border-blue-600 rounded-lg"
-        >
-          <p class="text-xl text-gray-500 mb-2">CERTIFICATE OF COMPLETION</p>
-          <h1 class="text-5xl font-serif text-blue-800 mb-6 font-extrabold">
-            EduPro
-          </h1>
-          <p class="text-3xl font-light italic mb-4">
-            This certificate is proudly presented to
-          </p>
-          <h2 class="text-5xl font-semibold text-green-600 mb-6">
-            Student Name
-          </h2>
-          <p class="text-xl mb-8">for successfully completing the course</p>
-          <h3 class="text-4xl font-bold text-gray-800" id="cert-course-title">
-            ...
-          </h3>
-          <div
-            class="mt-8 text-lg text-gray-700 flex justify-center space-x-10"
-          >
-            <span>Date: <span class="font-bold" id="cert-date">...</span></span>
-            <span
-              >Score: <span class="font-bold" id="cert-score">...</span></span
-            >
+        // Wire modal buttons (they can be clicked many times; ensure idempotency)
+        const btnDownloadPDF = document.getElementById("cert-download-pdf");
+        const btnDownloadPNG = document.getElementById("cert-download-png");
+        const btnPrint = document.getElementById("cert-print");
+        const btnSaveMeta = document.getElementById("cert-save-meta");
+        const btnCopyLink = document.getElementById("cert-copy-link");
+
+        // remove previous listeners by cloning nodes (simple detach technique)
+        [
+          btnDownloadPDF,
+          btnDownloadPNG,
+          btnPrint,
+          btnSaveMeta,
+          btnCopyLink,
+        ].forEach((btn) => {
+          const clone = btn.cloneNode(true);
+          btn.parentNode.replaceChild(clone, btn);
+        });
+
+        // re-get after replace
+        const dPDF = document.getElementById("cert-download-pdf");
+        const dPNG = document.getElementById("cert-download-png");
+        const pBtn = document.getElementById("cert-print");
+        const sMeta = document.getElementById("cert-save-meta");
+        const cLink = document.getElementById("cert-copy-link");
+
+        dPDF.addEventListener("click", () => downloadCertificate("pdf"));
+        dPNG.addEventListener("click", () => downloadCertificate("png"));
+        pBtn.addEventListener("click", () => window.print());
+        sMeta.addEventListener("click", () => {
+          const name =
+            document.getElementById("cert-student-name").value ||
+            (currentUser && currentUser.name) ||
+            "Student";
+          const certId = generateCertId(
+            currentUser ? currentUser.email : "guest",
+            cId
+          );
+          const meta = {
+            certId,
+            courseId: cId,
+            studentName: name,
+            userEmail: currentUser ? currentUser.email : null,
+            score: qScore,
+            date: new Date().toISOString(),
+          };
+          saveCertificateMeta(meta);
+          // also store certId on user's progress so course-detail/dashboard can mark it
+          const prog = getProgress(cId);
+          prog.certificateId = certId;
+          saveUserProgress(cId, prog);
+          // dispatch event for UI updates
+          window.dispatchEvent(
+            new CustomEvent("progressUpdated", {
+              detail: { courseId: cId, certificateId: certId },
+            })
+          );
+          alert(
+            "Certificate saved. You can now share or verify it using the link."
+          );
+        });
+        cLink.addEventListener("click", async () => {
+          // ensure saved meta exists
+          const name =
+            document.getElementById("cert-student-name").value ||
+            (currentUser && currentUser.name) ||
+            "Student";
+          let certId = null;
+          // if progress has certificateId use it
+          const prog = getProgress(cId);
+          if (prog && prog.certificateId) certId = prog.certificateId;
+          if (!certId) {
+            certId = generateCertId(
+              currentUser ? currentUser.email : "guest",
+              cId
+            );
+            const meta = {
+              certId,
+              courseId: cId,
+              studentName: name,
+              userEmail: currentUser ? currentUser.email : null,
+              score: qScore,
+              date: new Date().toISOString(),
+            };
+            saveCertificateMeta(meta);
+            // attach to user progress
+            if (prog) {
+              prog.certificateId = certId;
+              saveUserProgress(cId, prog);
+              window.dispatchEvent(
+                new CustomEvent("progressUpdated", {
+                  detail: { courseId: cId, certificateId: certId },
+                })
+              );
+            }
+          }
+          const url = `${location.origin}${location.pathname}?id=${cId}&certId=${certId}`;
+          try {
+            await navigator.clipboard.writeText(url);
+            alert(
+              "Certificate link copied to clipboard. Paste it to share or verify."
+            );
+          } catch (e) {
+            // fallback
+            prompt("Copy this certificate link:", url);
+          }
+        });
+      }
+
+      // download certificate by rendering the certificate DOM to image and embedding in PDF/PNG
+      async function downloadCertificate(format = "pdf") {
+        const preview = document.getElementById("certificate-preview");
+        if (!preview) {
+          alert("Certificate preview not ready.");
+          return;
+        }
+
+        // temporarily remove controls that shouldn't appear on the image
+        const controls = document.querySelectorAll(".cert-hide-on-export");
+        controls.forEach((c) => (c.style.display = "none"));
+
+        // use html2canvas
+        try {
+          const canvas = await html2canvas(preview, {
+            scale: 2,
+            useCORS: true,
+            scrollY: -window.scrollY,
+          });
+          // restore controls
+          controls.forEach((c) => (c.style.display = ""));
+
+          if (format === "png") {
+            const dataUrl = canvas.toDataURL("image/png");
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = `${
+              document.getElementById("cert-student-name").value || "Student"
+            }_certificate.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            return;
+          }
+
+          // PDF
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({
+            orientation: canvas.width > canvas.height ? "l" : "p",
+            unit: "px",
+            format: [canvas.width, canvas.height],
+          });
+          const imgData = canvas.toDataURL("image/png");
+          pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+          const fname = `${
+            document.getElementById("cert-student-name").value || "Student"
+          }_certificate.pdf`;
+          pdf.save(fname);
+        } catch (err) {
+          console.error("Export failed", err);
+          alert("Certificate export failed. Open console for details.");
+          // restore controls in case of error
+          const controls2 = document.querySelectorAll(".cert-hide-on-export");
+          controls2.forEach((c) => (c.style.display = ""));
+        }
+      }
+
+      // Open modal programmatically for verify flow
+      function verifyAndShowCert(certId) {
+        const meta = getCertificateMeta(certId);
+        if (!meta) {
+          alert("Certificate not found or invalid.");
+          return;
+        }
+        // ensure courseId matches
+        if (meta.courseId !== cId) {
+          alert("Certificate does not correspond to this course.");
+          return;
+        }
+        // prefill name and open modal
+        openCertificateModal(certId);
+      }
+
+      // small modal markup append (outside main container so it doesn't get overwritten)
+      const modalHtml = `
+        <div id="certificate-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-[110]">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 relative">
+            <button id="cert-close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 text-2xl"><i class="fas fa-times-circle"></i></button>
+            <div class="flex flex-col md:flex-row gap-6">
+              <div class="flex-1">
+                <div id="certificate-preview" class="p-10 border-8 border-double border-blue-600 rounded-lg text-center bg-white" style="min-height:280px;">
+                  <p class="text-xl text-gray-500 mb-2">CERTIFICATE OF COMPLETION</p>
+                  <h1 class="text-5xl font-serif text-blue-800 mb-6 font-extrabold">EduPro</h1>
+                  <p class="text-2xl font-light italic mb-4">This certificate is proudly presented to</p>
+                  <input id="cert-student-name" class="text-3xl font-semibold text-green-600 mb-2 text-center border-none focus:outline-none" style="background:transparent; text-align:center; width:100%;" />
+                  <p class="text-xl mb-6">for successfully completing the course</p>
+                  <h3 id="cert-course-title" class="text-3xl font-bold text-gray-800">...</h3>
+                  <div class="mt-8 text-lg text-gray-700 flex justify-center space-x-8">
+                    <span>Date: <span id="cert-date" class="font-bold">...</span></span>
+                    <span>Score: <span id="cert-score" class="font-bold">...</span></span>
+                  </div>
+                  <p class="mt-8 text-sm text-gray-400">Instructor Signature: John Doe</p>
+                </div>
+                <p class="text-sm text-gray-500 mt-3">Tip: Edit the name above to personalize the certificate before saving or downloading.</p>
+              </div>
+
+              <div class="w-full md:w-80 flex flex-col gap-3">
+                <div class="bg-gray-50 border rounded p-3">
+                  <div class="font-semibold mb-1">Certificate Actions</div>
+                  <div class="flex flex-col gap-2">
+                    <button id="cert-download-pdf" class="cert-hide-on-export px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Download PDF</button>
+                    <button id="cert-download-png" class="cert-hide-on-export px-3 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">Download PNG</button>
+                    <button id="cert-print" class="cert-hide-on-export px-3 py-2 border rounded hover:bg-gray-50">Print</button>
+                    <button id="cert-save-meta" class="cert-hide-on-export px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save & Register Certificate</button>
+                    <button id="cert-copy-link" class="cert-hide-on-export px-3 py-2 border rounded hover:bg-gray-50">Copy Certificate Link</button>
+                  </div>
+                </div>
+
+                <div class="bg-gray-50 border rounded p-3">
+                  <div class="font-semibold mb-1">Verification</div>
+                  <div class="text-sm text-gray-600">Each registered certificate has a unique ID saved to the browser. Use "Copy Certificate Link" to share or verify.</div>
+                </div>
+
+                <div class="bg-gray-50 border rounded p-3">
+                  <div class="font-semibold mb-1">Safety</div>
+                  <div class="text-sm text-gray-600">This certificate is for demo purposes and stored locally; for production you'd store and verify server-side.</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p class="mt-8 text-sm text-gray-400">
-            Instructor Signature: John Doe
-          </p>
         </div>
-      </div>
-    </div>
+      `;
+      document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+      // modal close wiring
+      document.addEventListener("click", (e) => {
+        const modal = document.getElementById("certificate-modal");
+        if (!modal) return;
+        const target = e.target;
+        if (
+          target.id === "cert-close" ||
+          (target.closest && target.closest("#cert-close"))
+        ) {
+          modal.classList.add("hidden");
+        }
+      });
+
+      // Listen for progressUpdated to update UI live (quiz page dispatches this event)
+      window.addEventListener("progressUpdated", (ev) => {
+        // If certificate saved or quiz scored, re-render to show changes
+        try {
+          const detail = ev.detail || {};
+          if (
+            !detail ||
+            (detail.courseId && parseInt(detail.courseId, 10) !== cId)
+          ) {
+            // ignore if not for this course
+          }
+        } catch (e) {}
+        // update progress UI smoothly
+        try {
+          const newPercent = calculateCourseProgress(cId);
+          const progElem = document.getElementById("animated-progress");
+          if (progElem) {
+            progElem.style.width = `${newPercent}%`;
+            // update numeric percent in header
+            const percentNode = document.querySelector(
+              "#course-detail-container .font-bold.text-blue-800"
+            );
+            if (percentNode) percentNode.innerText = `${newPercent}%`;
+          }
+          // also re-render a few bits (like certificate button)
+          showCertificateButtonIfEligible();
+        } catch (err) {
+          // safe-guard
+          console.warn("progressUpdated handler error", err);
+        }
+      });
+
+      // initial render
+      setTimeout(renderCourseDetail, 50);
+    </script>
   </body>
 </html>

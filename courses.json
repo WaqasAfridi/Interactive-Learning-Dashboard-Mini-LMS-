@@ -5,64 +5,69 @@
     "category": "Development",
     "level": "Beginner",
     "image": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80",
-    "description": "Become a full-stack web developer with HTML, CSS, Javascript, Node, and React.",
+    "description": "Become a full-stack web developer with HTML, CSS, JavaScript, Node and React. Hands-on projects and real-world examples.",
     "lessons": [
       {
         "id": 1,
         "title": "Introduction to HTML",
         "video": "",
-        "content": "HTML stands for Hyper Text Markup Language. It is the standard markup language for Web pages."
+        "content": "HTML stands for Hyper Text Markup Language. It is the standard markup language for web pages."
       },
       {
         "id": 2,
         "title": "CSS Basics",
         "video": "",
-        "content": "CSS is the language we use to style an HTML document. CSS describes how HTML elements should be displayed."
+        "content": "CSS is the language we use to style HTML. Learn selectors, box model, flexbox and grid."
       },
       {
         "id": 3,
-        "title": "JS Fundamentals",
+        "title": "JavaScript Fundamentals",
         "video": "",
-        "content": "JavaScript is the world's most popular programming language. This chapter will teach you JS from scratch."
+        "content": "JavaScript powers interactivity — variables, functions, DOM, events and basic ES6."
       },
       {
         "id": 4,
-        "title": "DOM Manipulation",
+        "title": "Backend with Node.js",
         "video": "",
-        "content": "The HTML DOM is a standard object model and programming interface for HTML."
+        "content": "Build a simple API with Node.js and Express, handle routes and JSON responses."
       },
       {
         "id": 5,
-        "title": "Async Javascript",
+        "title": "React Basics",
         "video": "",
-        "content": "Learn about Promises, Async/Await and fetch API."
+        "content": "Create reactive UIs with components, props, state and hooks in React."
       }
     ],
     "quiz": [
       {
         "q": "What does HTML stand for?",
-        "options": ["Hyper Text Markup Language", "Home Tool Markup Language"],
+        "options": [
+          "Hyper Text Markup Language",
+          "Home Tool Markup Language",
+          "Hyperlinks Text Markup Language",
+          "Hyper Transfer Markup Language"
+        ],
         "correct": 0
       },
       {
         "q": "Which tag is used for the largest heading?",
-        "options": ["<h6>", "<h1>"],
+        "options": ["<h6>", "<h1>", "<heading>", "<head1>"],
         "correct": 1
       },
       {
         "q": "Inside which HTML element do we put the JavaScript?",
-        "options": ["<script>", "<js>"],
+        "options": ["<script>", "<javascript>", "<js>", "<code>"],
         "correct": 0
       },
       {
-        "q": "What is the correct syntax for referring to an external script called 'xxx.js'?",
-        "options": ["<script src='xxx.js'>", "<script href='xxx.js'>"],
-        "correct": 0
+        "q": "Which property changes the background color in CSS?",
+        "options": ["color", "bgcolor", "background-color", "backgroundImage"],
+        "correct": 2
       },
       {
-        "q": "How do you write 'Hello World' in an alert box?",
-        "options": ["msg('Hello World');", "alert('Hello World');"],
-        "correct": 1
+        "q": "Which method adds an element to the end of an array in JavaScript?",
+        "options": ["push()", "pop()", "shift()", "unshift()"],
+        "correct": 0
       }
     ]
   },
@@ -72,64 +77,69 @@
     "category": "Data Science",
     "level": "Intermediate",
     "image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80",
-    "description": "Learn Python programming specifically for Data Science and Machine Learning.",
+    "description": "Learn Python programming specifically for Data Science: Pandas, NumPy, visualization and basic ML workflows.",
     "lessons": [
       {
         "id": 1,
-        "title": "Python Syntax",
+        "title": "Python Syntax & Data Types",
         "video": "",
-        "content": "Intro to Python syntax and variables."
+        "content": "Variables, types, control flow and functions in Python."
       },
       {
         "id": 2,
-        "title": "Pandas Basics",
+        "title": "Working with Pandas",
         "video": "",
-        "content": "Data manipulation with Pandas."
+        "content": "Series, DataFrame, reading/writing CSVs and basic transformations."
       },
       {
         "id": 3,
-        "title": "NumPy Arrays",
+        "title": "NumPy Essentials",
         "video": "",
-        "content": "Numerical computing with NumPy."
+        "content": "ND arrays, vectorized operations and broadcasting."
       },
       {
         "id": 4,
-        "title": "Matplotlib",
+        "title": "Data Visualization",
         "video": "",
-        "content": "Data visualization basics."
+        "content": "Plotting with Matplotlib and Seaborn for exploratory analysis."
       },
       {
         "id": 5,
-        "title": "Scikit-Learn",
+        "title": "Intro to Scikit-Learn",
         "video": "",
-        "content": "Intro to Machine Learning models."
+        "content": "Prepare data, train a simple model, evaluate performance."
       }
     ],
     "quiz": [
       {
-        "q": "Which library is used for data manipulation?",
-        "options": ["Pandas", "Request"],
+        "q": "Which library is used mainly for data manipulation in Python?",
+        "options": ["Pandas", "Requests", "Flask", "BeautifulSoup"],
         "correct": 0
       },
       {
-        "q": "How do you insert comments in Python code?",
-        "options": ["//", "#"],
+        "q": "How do you write a single-line comment in Python?",
+        "options": [
+          "// comment",
+          "/* comment */",
+          "# comment",
+          "<!-- comment -->"
+        ],
+        "correct": 2
+      },
+      {
+        "q": "Which function prints output to the console in Python?",
+        "options": ["echo()", "print()", "console.log()", "puts()"],
         "correct": 1
       },
       {
-        "q": "Which function output text to the screen?",
-        "options": ["print()", "echo()"],
-        "correct": 0
-      },
-      {
-        "q": "What represents a list in Python?",
-        "options": ["{}", "[]"],
+        "q": "Which object type is used for numerical arrays in NumPy?",
+        "options": ["DataFrame", "ndarray", "Series", "Matrix"],
         "correct": 1
       },
       {
-        "q": "Is Python case sensitive?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Which library is commonly used for machine learning in Python?",
+        "options": ["Django", "NumPy", "scikit-learn", "Pillow"],
+        "correct": 2
       }
     ]
   },
@@ -139,64 +149,84 @@
     "category": "Design",
     "level": "Beginner",
     "image": "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Learn the fundamentals of user interface and user experience design: research, wireframing, prototyping and usability testing.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Intro to UX",
+        "video": "",
+        "content": "What is UX? User research basics and empathy mapping."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Design Principles",
+        "video": "",
+        "content": "Hierarchy, contrast, alignment, spacing and visual balance."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Wireframing & Prototyping",
+        "video": "",
+        "content": "Low-fi and hi-fi prototypes using popular tools."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Usability Testing",
+        "video": "",
+        "content": "Plan and run simple usability tests and collect feedback."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Design Handoff & Workflow",
+        "video": "",
+        "content": "Export assets, document decisions and collaborate with developers."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
+        "q": "What does UX stand for?",
+        "options": [
+          "User eXperience",
+          "User X-ray",
+          "Universal Experience",
+          "User Extension"
+        ],
         "correct": 0
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
+        "q": "Which is a core design principle?",
+        "options": ["Randomness", "Contrast", "Chaos", "Compression"],
+        "correct": 1
+      },
+      {
+        "q": "What is a wireframe?",
+        "options": [
+          "Final visual design",
+          "High-fidelity prototype",
+          "Low-fidelity skeletal layout",
+          "A CSS framework"
+        ],
+        "correct": 2
+      },
+      {
+        "q": "Which method helps collect user feedback?",
+        "options": [
+          "Usability testing",
+          "SEO optimization",
+          "Unit testing",
+          "Performance tuning"
+        ],
         "correct": 0
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "What is the goal of a prototype?",
+        "options": [
+          "Publish to production",
+          "Test interactions and flows",
+          "Write unit tests",
+          "Optimize images"
+        ],
+        "correct": 1
       }
     ]
   },
@@ -206,63 +236,78 @@
     "category": "Marketing",
     "level": "Intermediate",
     "image": "https://images.unsplash.com/photo-1533750516457-a7f992034fec?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Core digital marketing skills: SEO, content marketing, social media, email and analytics to grow an audience.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Marketing Basics",
+        "video": "",
+        "content": "Customer funnels, personas and positioning."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "SEO Fundamentals",
+        "video": "",
+        "content": "On-page SEO, keywords and technical basics."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Content & Social",
+        "video": "",
+        "content": "Planning content and social strategy for engagement."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Email Marketing",
+        "video": "",
+        "content": "Building lists, writing effective emails and automation basics."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Analytics & Optimization",
+        "video": "",
+        "content": "Using analytics to measure success and iterate."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
+        "q": "What does SEO help with?",
+        "options": [
+          "Designing logos",
+          "Ranking pages in search engines",
+          "Server configuration",
+          "Video editing"
+        ],
+        "correct": 1
+      },
+      {
+        "q": "A good subject line in email marketing should be:",
+        "options": ["Vague", "Spammy", "Clear and compelling", "Very long"],
+        "correct": 2
+      },
+      {
+        "q": "Which metric measures site traffic?",
+        "options": ["Bounce rate", "CTR", "Sessions", "Both CTR and Sessions"],
+        "correct": 2
+      },
+      {
+        "q": "What is a buyer persona?",
+        "options": [
+          "A fictional representation of your ideal customer",
+          "A product feature list",
+          "An ad creative",
+          "A CSS class"
+        ],
         "correct": 0
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
+        "q": "A/B testing is used to:",
+        "options": [
+          "Compare two variants",
+          "Backup data",
+          "Schedule posts",
+          "Encrypt traffic"
+        ],
         "correct": 0
       }
     ]
@@ -270,66 +315,81 @@
   {
     "id": 5,
     "title": "Advanced React Patterns",
-    "category": "Business",
+    "category": "Development",
     "level": "Advanced",
     "image": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Learn advanced React patterns: composition, render props, context, performance optimizations and architecture patterns.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "React Composition",
+        "video": "",
+        "content": "Compose components for flexibility and reuse."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Context & Providers",
+        "video": "",
+        "content": "Global state via context without prop drilling."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Render Props & HOCs",
+        "video": "",
+        "content": "Patterns for sharing behavior across components."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Performance Optimization",
+        "video": "",
+        "content": "Memoization, lazy loading and avoiding re-renders."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Testing & Architecture",
+        "video": "",
+        "content": "Testing strategies and scalable project structure."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
+        "q": "What hook would you use to run side effects?",
+        "options": ["useState", "useEffect", "useRef", "useMemo"],
+        "correct": 1
+      },
+      {
+        "q": "Which helps avoid unnecessary renders?",
+        "options": [
+          "useMemo / React.memo",
+          "useFetch",
+          "useAxios",
+          "useInterval"
+        ],
         "correct": 0
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
+        "q": "Context is best used for:",
+        "options": [
+          "Tiny local state",
+          "Global app-level data",
+          "Styling only",
+          "Testing only"
+        ],
+        "correct": 1
+      },
+      {
+        "q": "What pattern shares behavior between components?",
+        "options": ["Render Props", "Webpack", "SASS", "BEM"],
         "correct": 0
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
+        "q": "Which tool is commonly used for component testing?",
+        "options": [
+          "Jest + React Testing Library",
+          "Mocha + Chai only",
+          "Photoshop",
+          "Figma"
+        ],
         "correct": 0
       }
     ]
@@ -337,66 +397,91 @@
   {
     "id": 6,
     "title": "Machine Learning A-Z",
-    "category": "Development",
+    "category": "Data Science",
     "level": "Beginner",
     "image": "https://images.unsplash.com/photo-1527474305487-b87b222841cc?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "A practical introduction to machine learning concepts, workflows, and common algorithms with hands-on examples.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "ML Concepts",
+        "video": "",
+        "content": "Supervised vs unsupervised learning, dataset splitting and evaluation."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Linear Models",
+        "video": "",
+        "content": "Linear regression, logistic regression and loss functions."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Tree-Based Methods",
+        "video": "",
+        "content": "Decision trees, random forests and gradient boosting basics."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Model Evaluation",
+        "video": "",
+        "content": "Cross-validation, ROC, precision and recall."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Deployment Basics",
+        "video": "",
+        "content": "Saving models, simple API endpoints and inference."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
+        "q": "What is supervised learning?",
+        "options": [
+          "Learning without labels",
+          "Learning from labeled data",
+          "Clustering only",
+          "Reinforcement only"
+        ],
+        "correct": 1
+      },
+      {
+        "q": "Which algorithm is good for classification and regression?",
+        "options": [
+          "Linear regression only",
+          "Decision trees",
+          "CSS Grid",
+          "React"
+        ],
+        "correct": 1
+      },
+      {
+        "q": "What does overfitting mean?",
+        "options": [
+          "Model fits training data too closely and generalizes poorly",
+          "Perfect generalization",
+          "Faster inference",
+          "No errors"
+        ],
         "correct": 0
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "ROC curve is used to evaluate:",
+        "options": [
+          "Regression error",
+          "Classification thresholds and trade-offs",
+          "Image size",
+          "Network latency"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
+        "q": "A common method to avoid overfitting is:",
+        "options": [
+          "Regularization",
+          "Adding noise to CSS",
+          "Increasing image resolution",
+          "Using inline styles"
+        ],
         "correct": 0
       }
     ]
@@ -404,200 +489,240 @@
   {
     "id": 7,
     "title": "Graphic Design Basics",
-    "category": "IT & Software",
+    "category": "Design",
     "level": "Intermediate",
-    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9ah45cD7pj8XBvqxlFS5jrcvloXlQNV8CZg&s",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "image": "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=80",
+    "description": "Learn core graphic design concepts: color theory, typography, layout, and practical tools to create visuals.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Design Principles",
+        "video": "",
+        "content": "Balance, contrast, alignment, repetition and proximity."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Color Theory",
+        "video": "",
+        "content": "Color wheel, harmony and contrast for purposeful palettes."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Typography",
+        "video": "",
+        "content": "Choosing typefaces, pairing and readability."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Layout & Composition",
+        "video": "",
+        "content": "Grids, spacing and visual hierarchy."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Exporting Assets",
+        "video": "",
+        "content": "Prepare files and assets for web and print."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
+        "q": "Which principle involves arrangement of elements for balance?",
+        "options": ["Contrast", "Hierarchy", "Balance", "Compression"],
+        "correct": 2
+      },
+      {
+        "q": "HEX #FF0000 represents which color?",
+        "options": ["Blue", "Red", "Green", "Black"],
+        "correct": 1
+      },
+      {
+        "q": "What is leading in typography?",
+        "options": ["Line spacing", "Font weight", "Kerning", "Color"],
         "correct": 0
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Which format is best for vector art?",
+        "options": ["PNG", "JPG", "SVG", "BMP"],
+        "correct": 2
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
-      },
-      {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A good layout often uses:",
+        "options": [
+          "Random spacing",
+          "Clear visual hierarchy",
+          "Unreadable fonts",
+          "Excessive colors"
+        ],
+        "correct": 1
       }
     ]
   },
   {
     "id": 8,
     "title": "Cybersecurity Fundamentals",
-    "category": "Data Science",
+    "category": "IT & Software",
     "level": "Advanced",
     "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Core cybersecurity topics: threat models, network security, encryption basics and best practices to secure apps.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Security Basics",
+        "video": "",
+        "content": "Confidentiality, integrity and availability (CIA triad)."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Network Security",
+        "video": "",
+        "content": "Firewalls, VPNs and secure network design."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Authentication & Authorization",
+        "video": "",
+        "content": "Passwords, MFA and session management."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Encryption Basics",
+        "video": "",
+        "content": "Symmetric vs asymmetric cryptography and TLS."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Secure Development",
+        "video": "",
+        "content": "OWASP Top 10 and secure coding practices."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "What does CIA stand for in security?",
+        "options": [
+          "Central Intelligence Agency",
+          "Confidentiality, Integrity, Availability",
+          "Control, Inspect, Audit",
+          "Compute, Integrate, Apply"
+        ],
+        "correct": 1
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "What is MFA?",
+        "options": [
+          "Multiple File Access",
+          "Multi-Factor Authentication",
+          "Mainframe Access",
+          "Managed Firewall Access"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "TLS is used to:",
+        "options": [
+          "Style web pages",
+          "Encrypt communication between client and server",
+          "Store images",
+          "Manage databases"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "OWASP focuses on:",
+        "options": [
+          "Graphic design",
+          "Secure web application vulnerabilities",
+          "Marketing analytics",
+          "Hardware design"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A strong password should be:",
+        "options": [
+          "Short and memorable",
+          "Unique and complex",
+          "The same everywhere",
+          "Just numbers"
+        ],
+        "correct": 1
       }
     ]
   },
   {
     "id": 9,
     "title": "Mobile App Dev (Flutter)",
-    "category": "Design",
+    "category": "Development",
     "level": "Beginner",
     "image": "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Build cross-platform mobile apps with Flutter and Dart: widgets, layouts, state management and deployment basics.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Intro to Flutter & Dart",
+        "video": "",
+        "content": "Install toolchain, project structure and Dart basics."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Widgets & Layouts",
+        "video": "",
+        "content": "Stateless vs Stateful widgets and common layout widgets."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "State Management",
+        "video": "",
+        "content": "setState, Provider and simple app state patterns."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Networking & Persistence",
+        "video": "",
+        "content": "Fetch data and persist locally."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Release & Deployment",
+        "video": "",
+        "content": "Build and publish to stores."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Which language is used with Flutter?",
+        "options": ["Kotlin", "Swift", "Dart", "JavaScript"],
+        "correct": 2
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A StatelessWidget is used when:",
+        "options": [
+          "State changes frequently",
+          "UI is static and immutable",
+          "You need database",
+          "You need native code"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Which widget arranges children vertically?",
+        "options": ["Row", "Column", "Stack", "Container"],
+        "correct": 1
       },
       {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Provider is commonly used for:",
+        "options": [
+          "Styling only",
+          "State management",
+          "Networking",
+          "Database migrations"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
+        "q": "To make HTTP requests in Flutter you might use:",
+        "options": ["http package", "Photoshop", "Pandas", "NumPy"],
         "correct": 0
       }
     ]
@@ -605,67 +730,92 @@
   {
     "id": 10,
     "title": "Blockchain Essentials",
-    "category": "Marketing",
+    "category": "IT & Software",
     "level": "Intermediate",
     "image": "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Understand blockchain fundamentals: distributed ledgers, consensus, smart contracts and real-world use cases.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Blockchain Basics",
+        "video": "",
+        "content": "Blocks, chains and decentralization explained."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Consensus Algorithms",
+        "video": "",
+        "content": "Proof of Work, Proof of Stake and trade-offs."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Smart Contracts",
+        "video": "",
+        "content": "What they are and basic Solidity concepts."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Token Economics",
+        "video": "",
+        "content": "Tokens, wallets and transfers."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Use Cases & Risks",
+        "video": "",
+        "content": "Real world examples and security considerations."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A blockchain is best described as:",
+        "options": [
+          "A central database",
+          "A distributed ledger of records",
+          "A design tool",
+          "An image format"
+        ],
+        "correct": 1
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Proof of Work is used to:",
+        "options": [
+          "Design websites",
+          "Secure consensus by computational effort",
+          "Encrypt images",
+          "Store passwords"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Smart contracts run on:",
+        "options": [
+          "Client browser only",
+          "Blockchain platforms",
+          "Local filesystem",
+          "Word processors"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A wallet holds:",
+        "options": [
+          "Physical coins only",
+          "Cryptographic keys and addresses",
+          "Design templates",
+          "CSS files"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A common risk in blockchain apps is:",
+        "options": [
+          "Overfitting",
+          "Smart contract bugs",
+          "Slow CSS",
+          "Missing fonts"
+        ],
+        "correct": 1
       }
     ]
   },
@@ -675,131 +825,181 @@
     "category": "Business",
     "level": "Advanced",
     "image": "https://keralaspeechfoundation.com/wp-content/smush-webp/2025/06/Public-Speaking-Training.jpg.webp",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Build confidence and storytelling skills for public speaking: preparation, delivery, handling Q&A and stagecraft.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Confidence & Presence",
+        "video": "",
+        "content": "Techniques to reduce anxiety and build on-stage presence."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Structuring a Talk",
+        "video": "",
+        "content": "Opening, body and closing with strong calls-to-action."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Storytelling Techniques",
+        "video": "",
+        "content": "Narrative structure, examples and emotional hooks."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Handling Q&A",
+        "video": "",
+        "content": "Answering questions confidently and bridging techniques."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Delivery & Voice",
+        "video": "",
+        "content": "Pacing, projection and using pauses effectively."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A strong opening should:",
+        "options": [
+          "Confuse the audience",
+          "Grab attention and set context",
+          "Be extremely long",
+          "Be silent"
+        ],
+        "correct": 1
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "When handling Q&A, you should:",
+        "options": [
+          "Ignore the question",
+          "Repeat and clarify the question before answering",
+          "Answer angrily",
+          "Tell them to email you"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Storytelling in talks helps to:",
+        "options": [
+          "Bore the audience",
+          "Create emotional connection",
+          "Make slides smaller",
+          "Avoid rehearsing"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Good pacing means:",
+        "options": [
+          "Rushing all the time",
+          "Varying tempo and using pauses",
+          "Monotone delivery",
+          "Speaking as fast as possible"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Eye contact helps to:",
+        "options": [
+          "Distract audience",
+          "Build rapport with listeners",
+          "Hide mistakes",
+          "Replace content"
+        ],
+        "correct": 1
       }
     ]
   },
   {
     "id": 12,
     "title": "Financial Analysis",
-    "category": "Development",
+    "category": "Business",
     "level": "Beginner",
     "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Master this skill in 4 weeks.",
+    "description": "Introductory financial analysis for business: reading financial statements, ratios, forecasting and basic valuation.",
     "lessons": [
       {
         "id": 1,
-        "title": "Introduction",
-        "content": "Welcome to the course.",
-        "video": ""
+        "title": "Intro to Financial Statements",
+        "video": "",
+        "content": "Balance sheet, income statement and cash flow overview."
       },
       {
         "id": 2,
-        "title": "Core Concepts",
-        "content": "Learning the basics.",
-        "video": ""
+        "title": "Key Financial Ratios",
+        "video": "",
+        "content": "Liquidity, profitability and leverage ratios explained."
       },
       {
         "id": 3,
-        "title": "Advanced Topics",
-        "content": "Going deeper.",
-        "video": ""
+        "title": "Forecasting Basics",
+        "video": "",
+        "content": "Simple forecasting using historical trends and assumptions."
       },
       {
         "id": 4,
-        "title": "Case Studies",
-        "content": "Real world examples.",
-        "video": ""
+        "title": "Valuation Fundamentals",
+        "video": "",
+        "content": "Present value concepts and basic valuation techniques."
       },
       {
         "id": 5,
-        "title": "Conclusion",
-        "content": "Wrap up.",
-        "video": ""
+        "title": "Interpreting Outcomes",
+        "video": "",
+        "content": "How to present findings and make data-driven recommendations."
       }
     ],
     "quiz": [
       {
-        "q": "Is this a placeholder question?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Which statement shows a company's assets and liabilities?",
+        "options": [
+          "Income statement",
+          "Balance sheet",
+          "Cash flow statement",
+          "Marketing plan"
+        ],
+        "correct": 1
       },
       {
-        "q": "Are you learning?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Return on Equity (ROE) measures:",
+        "options": [
+          "Liquidity",
+          "Profitability relative to shareholders' equity",
+          "Inventory turnover",
+          "Tax rate"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is 2+2=4?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Discounted Cash Flow is used for:",
+        "options": [
+          "Graphic design",
+          "Valuation using present value of cash flows",
+          "Cleaning data",
+          "Writing unit tests"
+        ],
+        "correct": 1
       },
       {
-        "q": "Is the sky blue?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "Cash flow from operations is found in:",
+        "options": [
+          "Balance sheet",
+          "Income statement",
+          "Cash flow statement",
+          "Statement of intent"
+        ],
+        "correct": 2
       },
       {
-        "q": "Is AI cool?",
-        "options": ["Yes", "No"],
-        "correct": 0
+        "q": "A high current ratio indicates:",
+        "options": [
+          "Poor liquidity",
+          "Strong short-term liquidity",
+          "High profitability",
+          "High leverage"
+        ],
+        "correct": 1
       }
     ]
   }

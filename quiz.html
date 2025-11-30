@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>EduPro - Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       rel="stylesheet"
     />
+    <style>
+      /* small focus ring for keyboard users */
+      .option-btn:focus {
+        outline: 3px solid rgba(59, 130, 246, 0.35);
+        outline-offset: 2px;
+      }
+    </style>
   </head>
   <body class="bg-gray-100 text-gray-800 font-sans flex flex-col min-h-screen">
     <nav class="bg-white shadow-md w-full">
@@ -22,20 +29,26 @@
       </div>
     </nav>
 
-    <div class="flex-grow flex items-center justify-center p-4">
+    <main class="flex-grow flex items-center justify-center p-4">
       <div
-        class="bg-white p-8 rounded-xl shadow-lg max-w-2xl w-full"
         id="quiz-container"
-      ></div>
-    </div>
+        class="bg-white p-8 rounded-xl shadow-lg max-w-2xl w-full"
+      >
+        <!-- content populated by JS -->
+      </div>
+    </main>
 
-    <!-- ======= courses-json-loader (insert BEFORE script.js) ======= -->
+    <footer class="text-center py-6 text-sm text-gray-500">
+      &copy; 2025 EduPro LMS
+    </footer>
+
+    <!-- lightweight synchronous loader for local project (keeps your pattern) -->
     <script>
       (function () {
         try {
           if (!localStorage.getItem("lmsCourses")) {
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", "courses.json", false); // synchronous on purpose for a small project
+            xhr.open("GET", "courses.json", false);
             xhr.send(null);
             if (xhr.status >= 200 && xhr.status < 300) {
               localStorage.setItem("lmsCourses", xhr.responseText);
@@ -57,226 +70,387 @@
         }
       })();
     </script>
-    <!-- ================================================================ -->
+
     <script src="script.js"></script>
     <script>
-      // Prevent unauthenticated access (must run after script.js is loaded)
-      if (!getCurrentUser()) {
+      // Safety: ensure auth helper exists
+      if (typeof getCurrentUser !== "function" || !getCurrentUser()) {
         alert("You must be logged in to view this page.");
         window.location.href = "login.html";
       }
 
-      const params = new URLSearchParams(window.location.search);
-      const cId = parseInt(params.get("courseId"));
       const container = document.getElementById("quiz-container");
+      const params = new URLSearchParams(window.location.search);
+      const cId = parseInt(params.get("courseId"), 10);
 
       let course = null;
-      let quizData = null;
+      let quizData = [];
       let currentQ = 0;
       let score = 0;
-      let isLocked = false; // Add state to prevent multiple clicks
+      let isLocked = false; // prevent double clicking
+      let previousSavedScore = null;
 
-      // REMOVED: const PASS_SCORE = 3; (Already defined in script.js)
+      // ARIA live region for announcements
+      const liveRegion = document.createElement("div");
+      liveRegion.setAttribute("aria-live", "polite");
+      liveRegion.setAttribute("id", "quiz-live");
+      liveRegion.className = "sr-only";
+      document.body.appendChild(liveRegion);
 
-      setTimeout(() => {
-        course = coursesData.find((c) => c.id === cId);
+      // initialize after small delay so script.js helpers are ready
+      setTimeout(initQuiz, 50);
 
+      function initQuiz() {
+        course = (window.coursesData || []).find((c) => c.id === cId);
         if (!course) {
-          container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error: Course not found.</div>`;
+          container.innerHTML = `<div class="text-center p-8 text-red-600 font-bold">Error: Course not found.</div>`;
           return;
         }
 
-        quizData = course.quiz;
+        quizData = Array.isArray(course.quiz) ? course.quiz : [];
+
+        // get existing progress for this user/course
         const progress = getProgress(cId);
+        previousSavedScore =
+          progress.quizScore !== undefined ? progress.quizScore : null;
 
-        // --- ENFORCEMENT: Check Lesson Completion ---
-        if (progress.completedLessons.length !== course.lessons.length) {
-          showRequirementError(course.title, course.lessons.length);
+        // Check lesson completion enforcement
+        const completedCount = Array.isArray(progress.completedLessons)
+          ? progress.completedLessons.length
+          : 0;
+        const totalLessons = (course.lessons || []).length;
+
+        if (completedCount !== totalLessons) {
+          renderRequirementError(course.title, totalLessons, completedCount);
           return;
         }
 
-        // Check if quiz already completed
-        if (progress.quizScore !== null) {
-          showPreviousResult(
-            progress.quizScore,
-            progress.quizScore >= PASS_SCORE
+        // If there's already a saved score, show previous result with options
+        if (previousSavedScore !== null && previousSavedScore !== undefined) {
+          renderPreviousResult(
+            previousSavedScore,
+            previousSavedScore >= PASS_SCORE
           );
           return;
         }
 
-        // Initialize quiz
-        renderQuestion();
-      }, 100);
-
-      // --- New Helper Functions ---
-
-      function showRequirementError(courseTitle, totalLessons) {
-        container.innerHTML = `
-              <div class="text-center py-8">
-                  <i class="fas fa-lock text-5xl text-red-500 mb-4"></i>
-                  <h2 class="text-3xl font-bold mb-2 text-gray-900">Quiz Locked</h2>
-                  <p class="text-lg text-gray-600 mb-6">You must complete all lessons in **${courseTitle}** before starting the final quiz.</p>
-                  <p class="text-sm text-gray-500 mb-8">Current Lessons Completed: ${
-                    getProgress(cId).completedLessons.length
-                  } / ${totalLessons}</p>
-                  <a href="course-detail.html?id=${cId}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">
-                      Return to Course Lessons
-                  </a>
-              </div>
-          `;
-      }
-
-      function showPreviousResult(currentScore, passed) {
-        container.innerHTML = `
-              <div class="text-center py-8">
-                  <div class="inline-block p-4 rounded-full ${
-                    passed
-                      ? "bg-green-100 text-green-600"
-                      : "bg-red-100 text-red-600"
-                  } mb-4">
-                      <i class="fas ${
-                        passed ? "fa-trophy" : "fa-undo"
-                      } text-5xl"></i>
-                  </div>
-                  <h2 class="text-3xl font-bold mb-2 text-gray-900">${
-                    passed ? "Quiz Already Passed!" : "Quiz Score Recorded"
-                  }</h2>
-                  <p class="text-lg text-gray-600 mb-8">Your previous score: <span class="font-bold text-black">${currentScore}</span> out of ${
-          quizData.length
-        }</p>
-                  
-                  <div class="flex justify-center gap-4">
-                      <a href="dashboard.html" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">Go to Dashboard</a>
-                      ${
-                        !passed
-                          ? `<button onclick="location.reload()" class="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-900 transition shadow">Retry Quiz</button>`
-                          : ""
-                      }
-                  </div>
-              </div>
-          `;
-      }
-
-      // --- Core Quiz Logic (Render, Handle Answer, Show Result) ---
-
-      function renderQuestion() {
-        isLocked = false; // Unlock for the new question
-        if (currentQ >= quizData.length) {
-          showResult();
+        // otherwise start quiz
+        if (!quizData || quizData.length === 0) {
+          container.innerHTML = `<div class="text-center p-8 text-gray-600">No quiz available for this course.</div>`;
           return;
         }
 
-        const q = quizData[currentQ];
+        // start fresh
+        currentQ = 0;
+        score = 0;
+        renderQuestion();
+      }
+
+      function renderRequirementError(courseTitle, totalLessons, done) {
         container.innerHTML = `
-        <div class="flex justify-between items-center mb-6">
-          <span class="text-gray-500 font-bold text-sm uppercase tracking-wide">Question ${
-            currentQ + 1
-          } of ${quizData.length}</span>
-          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Score: ${score}</span>
-        </div>
-        <h2 class="text-2xl font-bold mb-8 text-gray-800">${q.q}</h2>
-        <div class="space-y-4" id="options-container">
-          ${q.options
-            .map(
-              (opt, idx) => `
-            <button id="option-${idx}" data-index="${idx}" onclick="handleAnswerClick(this, ${idx})" class="w-full text-left p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition duration-200 font-medium text-gray-700">
-              ${opt}
-            </button>
-          `
-            )
-            .join("")}
-        </div>
-      `;
+          <div class="text-center py-8">
+            <i class="fas fa-lock text-5xl text-red-500 mb-4"></i>
+            <h2 class="text-3xl font-bold mb-2 text-gray-900">Quiz Locked</h2>
+            <p class="text-lg text-gray-600 mb-4">You must complete all lessons in <strong>${escapeHtml(
+              courseTitle
+            )}</strong> before starting the final quiz.</p>
+            <p class="text-sm text-gray-500 mb-6">Lessons completed: <strong>${done}</strong> / ${totalLessons}</p>
+            <a href="course-detail.html?id=${cId}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">
+              Return to Course Lessons
+            </a>
+          </div>
+        `;
+      }
+
+      function renderPreviousResult(savedScore, passed) {
+        // Keep quizData length if present, otherwise show 0
+        const total = quizData.length || 0;
+        container.innerHTML = `
+          <div class="text-center py-8">
+            <div class="inline-block p-4 rounded-full ${
+              passed ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+            } mb-4">
+              <i class="fas ${passed ? "fa-trophy" : "fa-undo"} text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-2 text-gray-900">${
+              passed ? "Quiz Already Passed!" : "Quiz Completed"
+            }</h2>
+            <p class="text-lg text-gray-600 mb-6">Your saved score: <span class="font-bold text-black">${savedScore}</span> out of ${total}</p>
+            <div class="flex justify-center gap-4">
+              ${
+                passed
+                  ? `<a href="dashboard.html" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">Go to Dashboard</a>`
+                  : `<button id="retry-btn" class="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-900 transition shadow">Retry Quiz</button>`
+              }
+              <a href="course-detail.html?id=${cId}" class="px-6 py-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">Back to Course</a>
+            </div>
+          </div>
+        `;
+
+        const retryBtn = document.getElementById("retry-btn");
+        if (retryBtn) {
+          retryBtn.addEventListener("click", () => {
+            // Clear saved score and restart
+            saveQuizScore(cId, null); // overwrite stored score
+            // dispatch update event so dashboard updates
+            window.dispatchEvent(
+              new CustomEvent("progressUpdated", {
+                detail: { courseId: cId, quizScore: null },
+              })
+            );
+            // reset local state and begin quiz
+            previousSavedScore = null;
+            currentQ = 0;
+            score = 0;
+            renderQuestion();
+          });
+        }
+      }
+
+      function renderQuestion() {
+        isLocked = false;
+
+        if (!quizData || quizData.length === 0) {
+          container.innerHTML = `<div class="text-center p-8 text-gray-600">No quiz questions available.</div>`;
+          return;
+        }
+
+        if (currentQ >= quizData.length) {
+          // quiz finished
+          return showResult();
+        }
+
+        const q = quizData[currentQ];
+
+        container.innerHTML = `
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h3 class="text-sm text-gray-500 font-semibold uppercase">Course</h3>
+              <p class="font-bold text-lg">${escapeHtml(course.title)}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-500">Question ${currentQ + 1} of ${
+          quizData.length
+        }</div>
+              <div class="text-xs mt-1"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Score: ${score}</span></div>
+            </div>
+          </div>
+
+          <h2 class="text-2xl font-bold mb-6 text-gray-800">${escapeHtml(
+            q.q
+          )}</h2>
+
+          <div id="options-container" class="space-y-4">
+            ${q.options
+              .map(
+                (opt, idx) => `
+              <button
+                class="option-btn w-full text-left p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition duration-200 font-medium text-gray-700"
+                id="option-${idx}"
+                data-index="${idx}"
+                aria-describedby="q-desc"
+              >${escapeHtml(opt)}</button>
+            `
+              )
+              .join("")}
+          </div>
+
+          <div class="mt-6 flex items-center justify-between">
+            <div class="text-sm text-gray-500">Select an answer (keyboard accessible)</div>
+            <div>
+              <button id="skip-btn" class="px-3 py-2 rounded border border-gray-200 hover:bg-gray-50">Skip</button>
+            </div>
+          </div>
+        `;
+
+        // attach listeners to options (keyboard & mouse)
+        const optionsWrap = document.getElementById("options-container");
+        optionsWrap.querySelectorAll("button").forEach((btn) => {
+          btn.addEventListener("click", () =>
+            handleAnswerClick(btn, Number(btn.dataset.index))
+          );
+          btn.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleAnswerClick(btn, Number(btn.dataset.index));
+            }
+          });
+        });
+
+        // skip button - move to next question without scoring (optional)
+        const skipBtn = document.getElementById("skip-btn");
+        skipBtn.addEventListener("click", () => {
+          if (isLocked) return;
+          isLocked = true;
+          // visually mark none selected, then proceed
+          setTimeout(() => {
+            currentQ++;
+            renderQuestion();
+          }, 250);
+        });
+
+        // announce question to SR
+        liveSay(`Question ${currentQ + 1}. ${q.q}`);
       }
 
       function handleAnswerClick(buttonElement, selectedIdx) {
         if (isLocked) return;
-        isLocked = true; // Lock controls
+        isLocked = true;
 
-        const currentQuestion = quizData[currentQ];
-        const correctIdx = currentQuestion.correct;
-        const isCorrect = selectedIdx === correctIdx;
+        const q = quizData[currentQ];
+        const correctIdx = q.correct;
 
-        // 1. Provide visual feedback
-        if (isCorrect) {
-          score++; // Update score immediately for display
-          buttonElement.classList.remove(
-            "border-gray-200",
-            "hover:border-blue-500",
-            "hover:bg-blue-50"
-          );
-          buttonElement.classList.add(
-            "bg-green-100",
-            "border-green-500",
-            "text-green-800",
-            "font-bold"
-          );
+        // mark chosen
+        if (selectedIdx === correctIdx) {
+          score++;
+          applyCorrectStyle(buttonElement);
+          liveSay("Correct.");
         } else {
-          buttonElement.classList.remove(
-            "border-gray-200",
-            "hover:border-blue-500",
-            "hover:bg-blue-50"
-          );
-          buttonElement.classList.add(
-            "bg-red-100",
-            "border-red-500",
-            "text-red-800",
-            "font-bold"
-          );
-          // Highlight correct answer
-          const correctButton = document.getElementById(`option-${correctIdx}`);
-          correctButton.classList.remove("border-gray-200");
-          correctButton.classList.add(
-            "bg-green-200",
-            "border-green-600",
-            "text-green-900"
-          );
+          applyIncorrectStyle(buttonElement);
+          // highlight correct after a tiny delay to make it clear
+          const correctBtn = document.getElementById(`option-${correctIdx}`);
+          if (correctBtn) applyCorrectStyle(correctBtn);
+          liveSay("Incorrect. The correct answer was read.");
         }
 
-        // Disable all buttons after choice
+        // disable all option buttons
         document
-          .getElementById("options-container")
-          .querySelectorAll("button")
-          .forEach((btn) => (btn.disabled = true));
+          .querySelectorAll("#options-container button")
+          .forEach((b) => (b.disabled = true));
 
-        // 2. Move to next question after a delay
+        // proceed to next question after brief pause to show feedback
         setTimeout(() => {
           currentQ++;
-          renderQuestion();
-        }, 1500); // Wait 1.5 seconds for the user to see the feedback
+          if (currentQ >= quizData.length) {
+            showResult();
+          } else {
+            renderQuestion();
+          }
+        }, 900);
+      }
+
+      function applyCorrectStyle(el) {
+        el.classList.remove(
+          "border-gray-200",
+          "hover:border-blue-500",
+          "hover:bg-blue-50"
+        );
+        el.classList.add(
+          "bg-green-100",
+          "border-green-500",
+          "text-green-800",
+          "font-bold"
+        );
+      }
+
+      function applyIncorrectStyle(el) {
+        el.classList.remove(
+          "border-gray-200",
+          "hover:border-blue-500",
+          "hover:bg-blue-50"
+        );
+        el.classList.add(
+          "bg-red-100",
+          "border-red-500",
+          "text-red-800",
+          "font-bold"
+        );
       }
 
       function showResult() {
         const passed = score >= PASS_SCORE;
+        // save to storage (script.js helper)
         saveQuizScore(cId, score);
 
+        // dispatch so dashboard / course-detail update immediately
+        window.dispatchEvent(
+          new CustomEvent("progressUpdated", {
+            detail: { courseId: cId, quizScore: score, passed },
+          })
+        );
+
+        const total = quizData.length || 0;
+
         container.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="inline-block p-4 rounded-full ${
-                      passed
-                        ? "bg-green-100 text-green-600"
-                        : "bg-red-100 text-red-600"
-                    } mb-4">
-                        <i class="fas ${
-                          passed ? "fa-trophy" : "fa-times-circle"
-                        } text-5xl"></i>
-                    </div>
-                    <h2 class="text-3xl font-bold mb-2 text-gray-900">${
-                      passed ? "Congratulations, You Passed!" : "Quiz Failed"
-                    }</h2>
-                    <p class="text-lg text-gray-600 mb-8">You scored <span class="font-bold text-black">${score}</span> out of ${
-          quizData.length
-        }. You needed ${PASS_SCORE} to pass.</p>
-                    
-                    <div class="flex justify-center gap-4">
-                        ${
-                          passed
-                            ? `<a href="dashboard.html" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">Go to Dashboard</a>`
-                            : `<button onclick="location.reload()" class="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-900 transition shadow">Retry Quiz</button>`
-                        }
-                    </div>
-                </div>
-            `;
+          <div class="text-center py-8">
+            <div class="inline-block p-4 rounded-full ${
+              passed ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+            } mb-4">
+              <i class="fas ${
+                passed ? "fa-trophy" : "fa-times-circle"
+              } text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-2 text-gray-900">${
+              passed ? "Congratulations, You Passed!" : "Quiz Failed"
+            }</h2>
+            <p class="text-lg text-gray-600 mb-6">You scored <span class="font-bold text-black">${score}</span> out of ${total}. You needed ${PASS_SCORE} to pass.</p>
+            <div class="flex justify-center gap-4">
+              ${
+                passed
+                  ? `<a href="dashboard.html" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow">Go to Dashboard</a>
+                          <button id="view-cert" class="px-6 py-3 rounded-lg border border-gray-200 hover:bg-gray-50">View Certificate</button>`
+                  : `<button id="retry-quiz" class="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-900 transition shadow">Retry Quiz</button>`
+              }
+              <a href="course-detail.html?id=${cId}" class="px-6 py-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">Back to Course</a>
+            </div>
+          </div>
+        `;
+
+        // post-save handlers
+        if (passed) {
+          const certBtn = document.getElementById("view-cert");
+          if (certBtn) {
+            certBtn.addEventListener("click", () => {
+              // open certificate modal in course-detail page — easiest is redirect
+              window.location.href = `course-detail.html?id=${cId}`;
+            });
+          }
+        } else {
+          const retryBtn = document.getElementById("retry-quiz");
+          if (retryBtn) {
+            retryBtn.addEventListener("click", () => {
+              // Clear stored score and restart quiz
+              saveQuizScore(cId, null);
+              window.dispatchEvent(
+                new CustomEvent("progressUpdated", {
+                  detail: { courseId: cId, quizScore: null },
+                })
+              );
+              currentQ = 0;
+              score = 0;
+              renderQuestion();
+            });
+          }
+        }
+
+        liveSay(
+          `Quiz complete. You scored ${score} out of ${total}. ${
+            passed ? "You passed." : "You did not pass."
+          }`
+        );
+      }
+
+      // small helper: announce to screen reader
+      function liveSay(text) {
+        try {
+          if (liveRegion) {
+            liveRegion.textContent = "";
+            setTimeout(() => (liveRegion.textContent = text), 50);
+          }
+        } catch (e) {
+          /* noop */
+        }
+      }
+
+      // helper to escape text for injection safety
+      function escapeHtml(str) {
+        if (typeof str !== "string") return str;
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
       }
     </script>
   </body>
