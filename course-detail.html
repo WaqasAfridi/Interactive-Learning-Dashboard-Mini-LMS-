@@ -68,293 +68,327 @@
     </footer>
 
     <script src="data.js"></script>
-<script src="script.js"></script>
-<script>
-    // 1. Get URL parameters and container element
-    const params = new URLSearchParams(window.location.search);
-    const cId = parseInt(params.get("id"));
-    const container = document.getElementById("course-detail-container");
+    <script src="script.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const cId = parseInt(params.get("id"));
+      const container = document.getElementById("course-detail-container");
+      const currentUser = getCurrentUser(); // Get user info
 
-    // 2. Define course variable globally and assign immediately
-    const course = coursesData.find((c) => c.id === cId);
+      // Define course variable globally
+      const course = coursesData.find((c) => c.id === cId);
 
-    // --- Start Immediate Rendering Logic ---
+      // --- Start Immediate Rendering Logic ---
 
-    if (!course) {
+      if (!course) {
         container.innerHTML = `
             <div class="bg-white p-8 rounded-xl shadow-lg text-center text-red-500">
                 Course not found (ID: ${cId}).
             </div>`;
-    }
+      } else {
+        // Retrieve progress data
+        const progress = getProgress(cId);
 
-    // Retrieve progress data
-    const progress = getProgress(cId);
+        // Check enrollment status
+        const isEnrolled =
+          progress.completedLessons.length > 0 || progress.quizScore !== null;
 
-    // Check enrollment status (simpler than relying on explicit enrollment function call)
-    const isEnrolled =
-        progress.completedLessons.length > 0 || progress.quizScore !== null;
+        const totalLessons = course.lessons.length;
+        const lessonsCompleted = progress.completedLessons.length;
+        const progressPercent = calculateCourseProgress(cId);
 
-    const totalLessons = course.lessons.length;
-    const lessonsCompleted = progress.completedLessons.length;
-
-    // Use the utility function for holistic progress
-    const progressPercent = calculateCourseProgress(cId);
-
-    // Determine the next lesson ID
-    let nextLessonId =
-        lessonsCompleted > 0 && lessonsCompleted < totalLessons
+        let nextLessonId =
+          lessonsCompleted > 0 && lessonsCompleted < totalLessons
             ? course.lessons[lessonsCompleted].id
             : course.lessons[0].id;
 
-    // Final Status Checks
-    const isCourseComplete = progressPercent === 100;
-    // Assuming PASS_SCORE is defined in script.js and defaults to 3
-    const quizPassed = progress.quizScore !== null && progress.quizScore >= (typeof PASS_SCORE !== 'undefined' ? PASS_SCORE : 3);
-    const isCertified = isCourseComplete && quizPassed;
+        const isCourseComplete = progressPercent === 100;
+        const quizPassed =
+          progress.quizScore !== null &&
+          progress.quizScore >=
+            (typeof PASS_SCORE !== "undefined" ? PASS_SCORE : 3);
+        const isCertified = isCourseComplete && quizPassed;
 
+        // --- Dynamic Button Logic ---
+        let actionButtonHTML = "";
 
-    // --- Dynamic Button Logic (Updated for Certificate) ---
-    let actionButtonHTML = "";
-    if (isCertified) {
-        // Course fully completed and passed
-        actionButtonHTML = `
-            <div class="flex items-center gap-2">
-                <span class="text-green-600 font-bold mr-2"><i class="fas fa-check-circle"></i> Certified!</span>
-                <button onclick="viewCertificate(${cId})" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition">View Certificate</button>
-            </div>
-        `;
-    } else if (
-        lessonsCompleted === totalLessons &&
-        course.quiz &&
-        course.quiz.length > 0 &&
-        progress.quizScore === null
-    ) {
-        // All lessons done, but quiz pending
-        actionButtonHTML = `
-            <a href="quiz.html?courseId=${cId}" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">Take Final Quiz (${course.quiz.length} Qs)</a>
-        `;
-    } else if (isEnrolled) {
-        // In progress (Continue Course or Start Course)
-        actionButtonHTML = `
-            <a href="lesson.html?courseId=${cId}&lessonId=${nextLessonId}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition">
-                <i class="fas fa-play-circle mr-2"></i> ${
-                    lessonsCompleted > 0 ? "Continue Course" : "Start Course"
-                }
-            </a>
-        `;
-    } else {
-        // Not enrolled
-        actionButtonHTML = `
-            <button onclick="enrollAndStart(${cId})" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700 transition">
-                <i class="fas fa-user-plus mr-2"></i> Enroll Now (Free)
-            </button>
-        `;
-    }
-    // -----------------------------
-
-    // --- Render Course Details (Unchanged) ---
-    container.innerHTML = `
-        <div class="bg-white rounded-xl shadow-xl overflow-hidden">
-            <div class="md:flex">
-                <div class="md:flex-shrink-0">
-                    <img class="h-64 w-full object-cover md:w-64" src="${
-                        course.image
-                    }" alt="${course.title}">
+        if (isCertified) {
+          actionButtonHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="text-green-600 font-bold mr-2"><i class="fas fa-check-circle"></i> Certified!</span>
+                    <button onclick="viewCertificate(${cId})" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition">View Certificate</button>
                 </div>
-                <div class="p-8 flex-1">
-                    <div class="uppercase tracking-wide text-sm text-blue-600 font-bold">${
-                        course.category
-                    }</div>
-                    <h1 class="block mt-1 text-4xl leading-tight font-extrabold text-gray-900">${
-                        course.title
-                    }</h1>
-                    <p class="mt-2 text-gray-500 text-lg">${
-                        course.description
-                    }</p>
-                    
-                    <div class="mt-4 flex items-center space-x-6 text-gray-600">
-                        <span><i class="fas fa-clock mr-1"></i> ${
-                            course.duration || "N/A"
-                        }</span>
-                        <span><i class="fas fa-list-ul mr-1"></i> ${
-                            course.lessons.length
-                        } Lessons</span>
-                        <span><i class="fas fa-star text-yellow-500 mr-1"></i> ${
-                            course.rating ? course.rating.toFixed(1) : "5.0"
-                        } (${course.reviews || 0} reviews)</span>
+            `;
+        } else if (
+          lessonsCompleted === totalLessons &&
+          course.quiz &&
+          course.quiz.length > 0 &&
+          progress.quizScore === null
+        ) {
+          actionButtonHTML = `
+                <a href="quiz.html?courseId=${cId}" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">Take Final Quiz (${course.quiz.length} Qs)</a>
+            `;
+        } else if (isEnrolled) {
+          actionButtonHTML = `
+                <a href="lesson.html?courseId=${cId}&lessonId=${nextLessonId}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                    <i class="fas fa-play-circle mr-2"></i> ${
+                      lessonsCompleted > 0 ? "Continue Course" : "Start Course"
+                    }
+                </a>
+            `;
+        } else {
+          // Not enrolled
+          actionButtonHTML = `
+                <button onclick="enrollAndStart(${cId})" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-700 transition">
+                    <i class="fas fa-user-plus mr-2"></i> Enroll Now (Free)
+                </button>
+            `;
+        }
+
+        // --- Render Course Details ---
+        container.innerHTML = `
+            <div class="bg-white rounded-xl shadow-xl overflow-hidden">
+                <div class="md:flex">
+                    <div class="md:flex-shrink-0">
+                        <img class="h-64 w-full object-cover md:w-64" src="${
+                          course.image
+                        }" alt="${course.title}">
+                    </div>
+                    <div class="p-8 flex-1">
+                        <div class="uppercase tracking-wide text-sm text-blue-600 font-bold">${
+                          course.category
+                        }</div>
+                        <h1 class="block mt-1 text-4xl leading-tight font-extrabold text-gray-900">${
+                          course.title
+                        }</h1>
+                        <p class="mt-2 text-gray-500 text-lg">${
+                          course.description
+                        }</p>
+                        
+                        <div class="mt-4 flex items-center space-x-6 text-gray-600">
+                            <span><i class="fas fa-clock mr-1"></i> ${
+                              course.duration || "N/A"
+                            }</span>
+                            <span><i class="fas fa-list-ul mr-1"></i> ${
+                              course.lessons.length
+                            } Lessons</span>
+                            <span><i class="fas fa-star text-yellow-500 mr-1"></i> ${
+                              course.rating ? course.rating.toFixed(1) : "5.0"
+                            } (${course.reviews || 0} reviews)</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            ${
-              isEnrolled
-                ? `
-            <div class="bg-blue-50 p-6 border-t">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-semibold text-blue-700">Course Progress</span>
-                    <span class="font-bold text-blue-800">${progressPercent}%</span>
-                </div>
-                <div class="w-full bg-blue-200 rounded-full h-3">
-                    <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
-                </div>
+                
                 ${
-                  quizPassed
-                    ? '<p class="text-sm text-green-600 mt-2 font-medium"><i class="fas fa-medal"></i> Quiz Passed!</p>'
-                    : progress.quizScore !== null
-                    ? '<p class="text-sm text-red-600 mt-2 font-medium"><i class="fas fa-times-circle"></i> Quiz Failed. Retry possible.</p>'
+                  isEnrolled
+                    ? `
+                <div class="bg-blue-50 p-6 border-t">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-blue-700">Course Progress</span>
+                        <span class="font-bold text-blue-800">${progressPercent}%</span>
+                    </div>
+                    <div class="w-full bg-blue-200 rounded-full h-3">
+                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
+                    </div>
+                    ${
+                      quizPassed
+                        ? '<p class="text-sm text-green-600 mt-2 font-medium"><i class="fas fa-medal"></i> Quiz Passed!</p>'
+                        : progress.quizScore !== null
+                        ? '<p class="text-sm text-red-600 mt-2 font-medium"><i class="fas fa-times-circle"></i> Quiz Failed. Retry possible.</p>'
+                        : ""
+                    }
+                </div>`
                     : ""
                 }
-            </div>
-            `
-                : ""
-            }
 
-            <div class="p-6 border-t flex justify-end">
-                ${actionButtonHTML}
-            </div>
+                <div class="p-6 border-t flex justify-end">
+                    ${actionButtonHTML}
+                </div>
 
-            <div class="p-8 border-t">
-                <h2 class="text-2xl font-bold mb-4">Curriculum (${totalLessons} Lessons)</h2>
-                <div class="space-y-3">
-                    ${course.lessons
-                      .map((lesson, index) => {
-                        const isDone = progress.completedLessons.includes(
-                          lesson.id
-                        );
-
-                        // Determine if this is the "NEXT" lesson to take based on array index
-                        const isNext =
-                          isEnrolled && !isDone && lessonsCompleted === index;
-
-                        return `
+                <div class="p-8 border-t">
+                    <h2 class="text-2xl font-bold mb-4">Curriculum (${totalLessons} Lessons)</h2>
+                    <div class="space-y-3">
+                        ${course.lessons
+                          .map((lesson, index) => {
+                            const isDone = progress.completedLessons.includes(
+                              lesson.id
+                            );
+                            const isNext =
+                              isEnrolled &&
+                              !isDone &&
+                              lessonsCompleted === index;
+                            return `
                                 <a href="lesson.html?courseId=${cId}&lessonId=${
-                                  lesson.id
-                                }" class="flex items-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow transition ${
-                                  isDone
-                                    ? "border-l-4 border-green-500"
-                                    : isNext
-                                    ? "border-l-4 border-blue-500"
-                                    : "border border-gray-200"
-                                }">
-                                        <i class="fas ${
-                                          isDone
-                                            ? "fa-check-circle text-green-500"
-                                            : "fa-circle text-gray-400"
-                                        } mr-4 text-xl"></i>
-                                        <div class="flex-1">
-                                            <h3 class="font-semibold text-gray-800">${
-                                              lesson.title
-                                            }</h3>
-                                        </div>
-                                        ${
-                                          isNext
-                                            ? '<span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">NEXT</span>'
-                                            : ""
-                                        }
-                                </a>
-                            `;
-                      })
-                      .join("")}
+                              lesson.id
+                            }" class="flex items-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow transition ${
+                              isDone
+                                ? "border-l-4 border-green-500"
+                                : isNext
+                                ? "border-l-4 border-blue-500"
+                                : "border border-gray-200"
+                            }">
+                                    <i class="fas ${
+                                      isDone
+                                        ? "fa-check-circle text-green-500"
+                                        : "fa-circle text-gray-400"
+                                    } mr-4 text-xl"></i>
+                                    <div class="flex-1"><h3 class="font-semibold text-gray-800">${
+                                      lesson.title
+                                    }</h3></div>
+                                    ${
+                                      isNext
+                                        ? '<span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">NEXT</span>'
+                                        : ""
+                                    }
+                                </a>`;
+                          })
+                          .join("")}
                         
-                    <div class="flex items-center p-4 rounded-lg border-2 ${
-                      progress.quizScore !== null
-                        ? quizPassed
-                          ? "border-green-500 bg-green-50"
-                          : "border-red-500 bg-red-50"
-                        : lessonsCompleted === totalLessons
-                        ? "border-orange-500 bg-orange-50" // Ready for quiz
-                        : "border-gray-200 bg-gray-50" // Not ready
-                    }">
-                        <i class="fas fa-question-circle ${
+                        <div class="flex items-center p-4 rounded-lg border-2 ${
                           progress.quizScore !== null
                             ? quizPassed
-                              ? "text-green-500"
-                              : "text-red-500"
-                            : "text-orange-500"
-                        } mr-4 text-xl"></i>
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-gray-800">Final Course Quiz (${
-                              course.quiz.length
-                            } Questions)</h3>
-                        </div>
-                        ${
-                          progress.quizScore !== null
-                            ? `<span class="font-bold ${
-                                quizPassed ? "text-green-700" : "text-red-700"
-                              }">${quizPassed ? "PASSED" : "FAILED"} (${
-                                progress.quizScore
-                              }/5)</span>`
+                              ? "border-green-500 bg-green-50"
+                              : "border-red-500 bg-red-50"
                             : lessonsCompleted === totalLessons
-                            ? `<a href="quiz.html?courseId=${cId}" class="text-blue-600 hover:underline font-bold">Start Quiz</a>`
-                            : `<span class="text-gray-500 text-sm">Requires all lessons completed</span>`
-                        }
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 bg-gray-50"
+                        }">
+                            <i class="fas fa-question-circle ${
+                              progress.quizScore !== null
+                                ? quizPassed
+                                  ? "text-green-500"
+                                  : "text-red-500"
+                                : "text-orange-500"
+                            } mr-4 text-xl"></i>
+                            <div class="flex-1"><h3 class="font-semibold text-gray-800">Final Course Quiz (${
+                              course.quiz.length
+                            } Questions)</h3></div>
+                            ${
+                              progress.quizScore !== null
+                                ? `<span class="font-bold ${
+                                    quizPassed
+                                      ? "text-green-700"
+                                      : "text-red-700"
+                                  }">${quizPassed ? "PASSED" : "FAILED"} (${
+                                    progress.quizScore
+                                  }/5)</span>`
+                                : lessonsCompleted === totalLessons
+                                ? `<a href="quiz.html?courseId=${cId}" class="text-blue-600 hover:underline font-bold">Start Quiz</a>`
+                                : `<span class="text-gray-500 text-sm">Requires all lessons completed</span>`
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+      }
 
-    // --- Enrollment function (now simplified) ---
-    // This is called via onclick="enrollAndStart(cId)"
-    window.enrollAndStart = function (courseId) {
-        if (!course || course.lessons.length === 0) {
-            alert("Cannot enroll: Course data missing or empty.");
-            return;
+      // --- Action Functions ---
+
+      window.enrollAndStart = function (courseId) {
+        // AUTH CHECK: Force login if guest
+        if (!getCurrentUser()) {
+          alert("You must be logged in to enroll.");
+          window.location.href = "login.html";
+          return;
         }
 
-        const firstLessonId = course.lessons[0].id;
+        if (!course || course.lessons.length === 0) {
+          alert("Cannot enroll: Course data missing or empty.");
+          return;
+        }
 
-        // This marks the first lesson as complete, effectively 'enrolling' and starting.
+        // Ensure the enrolled flag is set
+        enrollInCourse(courseId);
+
+        // You had previously auto-completed the first lesson when enrolling.
+        // Keep that behavior (if desired) — this makes sure the user is enrolled AND the first lesson is marked.
+        const firstLessonId = course.lessons[0].id;
         completeLesson(courseId, firstLessonId);
 
-        // Redirect to the first lesson
         window.location.href = `lesson.html?courseId=${courseId}&lessonId=${firstLessonId}`;
-    };
+      };
 
-    // --- NEW: View Certificate function ---
-    window.viewCertificate = function(courseId) {
-        const modal = document.getElementById('certificate-modal');
-        const courseData = coursesData.find(c => c.id === courseId);
+      window.viewCertificate = function (courseId) {
+        const modal = document.getElementById("certificate-modal");
+        const courseData = coursesData.find((c) => c.id === courseId);
         const pData = getProgress(courseId);
+        const user = getCurrentUser(); // Get real user
 
-        if (!courseData || !pData) {
-            alert("Error loading certificate data.");
-            return;
+        if (!courseData || !pData || !user) {
+          alert("Error loading certificate data.");
+          return;
         }
 
-        // Populate the modal content (using hardcoded "Student Name" for now)
-        document.getElementById('cert-course-title').innerText = courseData.title;
-        document.getElementById('cert-date').innerText = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        document.getElementById('cert-score').innerText = `${pData.quizScore}/${courseData.quiz.length}`;
+        // Populate certificate details
+        document.getElementById("cert-course-title").innerText =
+          courseData.title;
+        document.getElementById("cert-date").innerText =
+          new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+        document.getElementById(
+          "cert-score"
+        ).innerText = `${pData.quizScore}/${courseData.quiz.length}`;
 
-        // Display the modal
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    };
-</script>
-    <div id="certificate-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-[100]">
-    <div id="certificate-content" class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-8 relative">
-        <button onclick="document.getElementById('certificate-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 text-2xl">
-            <i class="fas fa-times-circle"></i>
+        // --- NEW: Insert User Name ---
+        // Find the element for student name (h2 with class text-green-600) and update it
+        const nameElement = document.querySelector(
+          "#certificate-content h2.text-green-600"
+        );
+        if (nameElement) nameElement.innerText = user.name;
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      };
+    </script>
+    <div
+      id="certificate-modal"
+      class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-[100]"
+    >
+      <div
+        id="certificate-content"
+        class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-8 relative"
+      >
+        <button
+          onclick="document.getElementById('certificate-modal').classList.add('hidden')"
+          class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 text-2xl"
+        >
+          <i class="fas fa-times-circle"></i>
         </button>
-        
-        <div class="text-center p-10 border-8 border-double border-blue-600 rounded-lg">
-            <p class="text-xl text-gray-500 mb-2">CERTIFICATE OF COMPLETION</p>
-            <h1 class="text-5xl font-serif text-blue-800 mb-6 font-extrabold">EduPro</h1>
-            <p class="text-3xl font-light italic mb-4">This certificate is proudly presented to</p>
-            <h2 class="text-5xl font-semibold text-green-600 mb-6">Student Name</h2>
-            <p class="text-xl mb-8">for successfully completing the course</p>
-            <h3 class="text-4xl font-bold text-gray-800" id="cert-course-title">...</h3>
-            <div class="mt-8 text-lg text-gray-700 flex justify-center space-x-10">
-                <span>Date: <span class="font-bold" id="cert-date">...</span></span>
-                <span>Score: <span class="font-bold" id="cert-score">...</span></span>
-            </div>
-            <p class="mt-8 text-sm text-gray-400">Instructor Signature: John Doe</p>
+
+        <div
+          class="text-center p-10 border-8 border-double border-blue-600 rounded-lg"
+        >
+          <p class="text-xl text-gray-500 mb-2">CERTIFICATE OF COMPLETION</p>
+          <h1 class="text-5xl font-serif text-blue-800 mb-6 font-extrabold">
+            EduPro
+          </h1>
+          <p class="text-3xl font-light italic mb-4">
+            This certificate is proudly presented to
+          </p>
+          <h2 class="text-5xl font-semibold text-green-600 mb-6">
+            Student Name
+          </h2>
+          <p class="text-xl mb-8">for successfully completing the course</p>
+          <h3 class="text-4xl font-bold text-gray-800" id="cert-course-title">
+            ...
+          </h3>
+          <div
+            class="mt-8 text-lg text-gray-700 flex justify-center space-x-10"
+          >
+            <span>Date: <span class="font-bold" id="cert-date">...</span></span>
+            <span
+              >Score: <span class="font-bold" id="cert-score">...</span></span
+            >
+          </div>
+          <p class="mt-8 text-sm text-gray-400">
+            Instructor Signature: John Doe
+          </p>
         </div>
-        
+      </div>
     </div>
-</div>
- </body>
-</html>
   </body>
 </html>

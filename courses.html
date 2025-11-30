@@ -123,10 +123,20 @@
         filterButtons.forEach((btn) => {
           if (btn.getAttribute("data-category") === activeCategory) {
             btn.classList.add("bg-blue-600", "text-white");
-            btn.classList.remove("bg-white", "border", "border-gray-300", "hover:bg-gray-50");
+            btn.classList.remove(
+              "bg-white",
+              "border",
+              "border-gray-300",
+              "hover:bg-gray-50"
+            );
           } else {
             btn.classList.remove("bg-blue-600", "text-white");
-            btn.classList.add("bg-white", "border", "border-gray-300", "hover:bg-gray-50");
+            btn.classList.add(
+              "bg-white",
+              "border",
+              "border-gray-300",
+              "hover:bg-gray-50"
+            );
           }
         });
       }
@@ -154,8 +164,14 @@
         filteredCourses.forEach((course) => {
           // --- NEW: Fetch Progress Data ---
           const progress = getProgress(course.id);
-          const isEnrolled =
-            !!progress.completedLessons.length || progress.quizScore !== null;
+          const isEnrolled = Boolean(
+            progress &&
+              (progress.enrolled ||
+                (progress.completedLessons &&
+                  progress.completedLessons.length) ||
+                progress.quizScore !== null)
+          );
+
           let progressHTML = "";
           let linkText = "View Course";
           let linkColor = "bg-blue-600";

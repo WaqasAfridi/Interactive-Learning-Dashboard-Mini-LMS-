@@ -52,19 +52,24 @@
       </div>
     </nav>
 
-    <div class="pt-24 pb-12 max-w-7xl mx-auto px-4 flex-grow">
+    <div id="dashboard-header" class="pt-24 pb-12 max-w-7xl mx-auto px-4">
       <div class="flex items-center gap-4 mb-2">
         <div
           class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl"
+          id="user-initial"
         >
           S
         </div>
         <div>
           <h1 class="text-2xl font-bold">My Dashboard</h1>
-          <p class="text-gray-500 text-sm">Welcome back, Student</p>
+          <p class="text-gray-500 text-sm" id="user-welcome">
+            Welcome back, Student
+          </p>
         </div>
       </div>
+    </div>
 
+    <div id="dashboard-content" class="max-w-7xl mx-auto px-4 flex-grow">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 mt-8">
         <div
           class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg"
@@ -86,6 +91,7 @@
         </div>
         <div
           class="bg-white p-6 rounded-xl shadow border border-gray-100 flex items-center justify-center"
+          id="next-goal-card"
         >
           <div class="text-center">
             <p class="text-gray-500 mb-2">Next Goal</p>
@@ -106,128 +112,188 @@
       <p>&copy; 2025 EduPro LMS. All rights reserved.</p>
     </footer>
     <script src="data.js"></script>
-<script src="script.js"></script>
-<script>
+    <script src="script.js"></script>
+    <script>
+            // --- DASHBOARD: user-scoped rendering (DO NOT redeclare globals from script.js) ---
+            const currentUser = getCurrentUser(); // provided by script.js
+
+            if (!currentUser) {
+              // Not logged in -> show access denied
+              const header = document.getElementById("dashboard-header");
+              const content = document.getElementById("dashboard-content");
+              header.innerHTML = "";
+              content.innerHTML = `
+            <div class="bg-white p-12 rounded-xl shadow-lg text-center my-10">
+              <i class="fas fa-lock text-6xl text-red-500 mb-4"></i>
+              <h2 class="text-3xl font-bold mb-2 text-gray-800">Access Denied</h2>
+              <p class="text-lg mb-6 text-gray-600">Please log in to view your personalized dashboard and course progress.</p>
+              <a href="login.html" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-md">
+                <i class="fas fa-sign-in-alt mr-2"></i> Go to Login
+              </a>
+            </div>
+          `;
+            } else {
+              // Logged in - render the dashboard for this user only
+              const userName = currentUser.name || "Student";
+              document.getElementById("user-initial").innerText = userName
+                .charAt(0)
+                .toUpperCase();
+              document.getElementById(
+                "user-welcome"
+              ).innerText = `Welcome back, ${userName}`;
 
       setTimeout(() => {
-        const userProgress =
-          JSON.parse(localStorage.getItem("lmsProgress")) || {};
-        const enrolledIds = Object.keys(userProgress);
+        // Use helper to only get courses this user is actually enrolled in
+        const userProgress = getProgressDataForUser() || {}; // keep for reading each course progress
+        const enrolledIds =
+          typeof getEnrolledCourseIdsForUser === "function"
+            ? getEnrolledCourseIdsForUser()
+            : Object.keys(userProgress);
+
         const container = document.getElementById("enrolled-grid");
-        const nextGoalCard = document.querySelector('.bg-white.p-6.rounded-xl.shadow.border');
+        const nextGoalCard = document.getElementById("next-goal-card");
 
         let certificates = 0;
         let incompleteCourses = [];
 
-        document.getElementById("total-enrolled").innerText =
-          enrolledIds.length;
+        document.getElementById("total-enrolled").innerText = enrolledIds.length;
 
         if (enrolledIds.length === 0) {
-          // Display message for no courses
           container.innerHTML = `
             <div class="text-center py-10 bg-white rounded-lg border border-dashed border-gray-300">
-              <p class="text-gray-500 mb-4">You haven't started any courses yet.</p>
+              <p class="text-gray-500 mb-4">You haven't started any courses yet, ${userName}.</p>
               <a href="courses.html" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Browse Courses</a>
             </div>
           `;
+          document.getElementById("total-certs").innerText = 0;
         } else {
-          // Render Enrolled Courses
+          container.innerHTML = "";
+
           enrolledIds.forEach((id) => {
-            const courseId = parseInt(id);
+            const courseId = parseInt(id, 10);
+            if (!courseId) return;
             const course = coursesData.find((c) => c.id === courseId);
-            
-            if (course) {
-              const pData = userProgress[id];
-              
-              // Use the unified progress function from script.js
-              const percent = calculateCourseProgress(courseId); 
+            if (!course) return;
 
-              // Determine quiz status
-              const hasAttemptedQuiz = pData.quizScore !== null;
-              const passed = hasAttemptedQuiz && pData.quizScore >= PASS_SCORE;
-              
-              if (passed) {
-                  certificates++;
-              } else if (percent < 100) {
-                  incompleteCourses.push({
-                      title: course.title,
-                      id: course.id,
-                      percent: percent
-                  });
-              }
+            const pData = userProgress[id] || {
+              completedLessons: [],
+              quizScore: null,
+            };
 
+            // --- LAST VISITED ---
+            const lastId = pData.lastVisited || null;
+            const lastText = lastId && course.lessons.find((l) => l.id === lastId)
+              ? {
+                  text: `Last: ${course.lessons.find((l) => l.id === lastId).title}`,
+                  href: `lesson.html?courseId=${courseId}&lessonId=${lastId}`,
+                }
+              : { text: "Not started", href: null };
 
-              // Determine quiz display text and color
-              let quizStatusHtml = '';
-              if (hasAttemptedQuiz) {
-                quizStatusHtml = `<span class="font-bold ${
-                  passed ? "text-green-600" : "text-red-500"
-                }">Quiz Score: ${pData.quizScore}/${course.quiz.length} ${passed ? '(Passed)' : '(Failed)'}</span>`;
-              } else if (percent === 100) {
-                  quizStatusHtml = '<span class="font-bold text-orange-500">Quiz Pending!</span>';
-              } else {
-                  quizStatusHtml = '<span class="text-gray-500">Quiz Pending</span>';
-              }
+            // Calculate percent using the user's pData (defensive, mirrors calculateCourseProgress)
+            const totalLessons = (course.lessons || []).length;
+            const hasQuiz = Array.isArray(course.quiz) && course.quiz.length > 0;
+            const totalUnits = totalLessons + (hasQuiz ? 1 : 0);
 
+            const completedLessonsCount = Array.isArray(pData.completedLessons)
+              ? pData.completedLessons.length
+              : 0;
+            const quizCompleted =
+              pData.quizScore !== null && pData.quizScore !== undefined;
+            const completedUnits =
+              completedLessonsCount + (hasQuiz && quizCompleted ? 1 : 0);
 
-              container.innerHTML += `
-                <div class="bg-white border rounded-lg p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm hover:shadow-md transition">
-                  <img src="${
-                    course.image
-                  }" class="w-full md:w-32 h-32 md:h-20 rounded object-cover">
-                  <div class="flex-1 w-full">
-                    <h3 class="text-lg font-bold text-gray-800">${
-                      course.title
-                    }</h3>
-                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2 mb-1">
-                      <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percent}%"></div>
-                    </div>
-                    <div class="flex justify-between text-sm text-gray-600 mt-2">
-                      <span>${percent}% Complete</span>
-                      ${quizStatusHtml}
-                    </div>
-                  </div>
-                  <a href="course-detail.html?id=${
-                    course.id
-                  }" class="w-full md:w-auto text-center px-6 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition">
-                    ${percent === 100 ? "Review" : "Continue"}
-                  </a>
-                </div>
-              `;
+            const percent =
+              totalUnits === 0
+                ? 0
+                : Math.min(100, Math.floor((completedUnits / totalUnits) * 100));
+
+            const passed = pData.quizScore !== null && pData.quizScore >= PASS_SCORE;
+
+            if (passed) certificates++;
+            else if (percent < 100)
+              incompleteCourses.push({
+                title: course.title,
+                id: course.id,
+                percent,
+              });
+
+            let quizStatusHtml = "";
+            if (pData.quizScore !== null && pData.quizScore !== undefined) {
+              quizStatusHtml = `<span class="font-bold ${
+                passed ? "text-green-600" : "text-red-500"
+              }">Quiz Score: ${pData.quizScore}/${(course.quiz || []).length} ${
+                passed ? "(Passed)" : "(Failed)"
+              }</span>`;
+            } else if (percent === 100 && hasQuiz) {
+              quizStatusHtml = `<span class="font-bold text-orange-500">Quiz Pending!</span>`;
+            } else {
+              quizStatusHtml = `<span class="text-gray-500">Quiz Pending</span>`;
             }
+
+            container.innerHTML += `
+              <div class="bg-white border rounded-lg p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm hover:shadow-md transition">
+                <img src="${course.image}" class="w-full md:w-32 h-32 md:h-20 rounded object-cover">
+                <div class="flex-1 w-full">
+                  <h3 class="text-lg font-bold text-gray-800">${course.title}</h3>
+                  <p class="text-sm text-gray-500 mt-1">
+                    ${
+                      lastText.href
+                        ? `<a href="${lastText.href}" class="hover:underline text-blue-600">${lastText.text}</a>`
+                        : `${lastText.text}`
+                    }
+                  </p>
+                  <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2 mb-1">
+                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percent}%"></div>
+                  </div>
+                  <div class="flex justify-between text-sm text-gray-600 mt-2">
+                    <span>${percent}% Complete</span>
+                    ${quizStatusHtml}
+                  </div>
+                </div>
+                <a href="course-detail.html?id=${course.id}" class="w-full md:w-auto text-center px-6 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition">
+                  ${percent === 100 ? "Review" : "Continue"}
+                </a>
+              </div>
+            `;
           });
+
           document.getElementById("total-certs").innerText = certificates;
         }
-        
-        // --- Next Goal Card Logic ---
+
+        // Next goal
         if (incompleteCourses.length > 0) {
-            // Sort to focus on the course with the lowest progress
-            incompleteCourses.sort((a, b) => a.percent - b.percent);
-            const nextCourse = incompleteCourses[0];
-            
-            nextGoalCard.innerHTML = `
-                <div class="text-center">
-                    <p class="text-gray-500 mb-2">Next Step: **${nextCourse.title}**</p>
-                    <a href="course-detail.html?id=${nextCourse.id}" class="text-blue-600 font-bold hover:underline">
-                        Continue at ${nextCourse.percent}% &rarr;
-                    </a>
-                </div>
-            `;
-        } else if (certificates === enrolledIds.length && enrolledIds.length > 0) {
-             // All enrolled courses are completed and passed
-             nextGoalCard.innerHTML = `
-                <div class="text-center">
-                    <p class="text-green-600 mb-2 font-bold">All Courses Completed! 🥳</p>
-                    <a href="courses.html" class="text-blue-600 font-bold hover:underline">
-                        Explore Advanced Courses &rarr;
-                    </a>
-                </div>
-            `;
+          incompleteCourses.sort((a, b) => a.percent - b.percent);
+          const nextCourse = incompleteCourses[0];
+          nextGoalCard.innerHTML = `
+            <div class="text-center">
+              <p class="text-gray-500 mb-2">Next Step: <strong>${nextCourse.title}</strong></p>
+              <a href="course-detail.html?id=${nextCourse.id}" class="text-blue-600 font-bold hover:underline">
+                Continue at ${nextCourse.percent}% &rarr;
+              </a>
+            </div>
+          `;
+        } else if (
+          certificates > 0 &&
+          certificates === enrolledIds.length &&
+          enrolledIds.length > 0
+        ) {
+          nextGoalCard.innerHTML = `
+            <div class="text-center">
+              <p class="text-green-600 mb-2 font-bold">All Courses Completed! 🥳</p>
+              <a href="courses.html" class="text-blue-600 font-bold hover:underline">Explore Advanced Courses &rarr;</a>
+            </div>
+          `;
+        } else {
+          nextGoalCard.innerHTML = `
+            <div class="text-center">
+              <p class="text-gray-500 mb-2">Next Goal</p>
+              <a href="courses.html" class="text-blue-600 font-bold hover:underline">Find a new course &rarr;</a>
+            </div>
+          `;
         }
-        
-      }, 100);
+      }, 50);
+    }
+
     </script>
- </body>
-</html>
   </body>
 </html>

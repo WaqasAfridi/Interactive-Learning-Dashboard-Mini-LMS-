@@ -59,6 +59,12 @@
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script>
+      // Prevent unauthenticated access (must run after script.js is loaded so getCurrentUser exists)
+      if (!getCurrentUser()) {
+        alert("You must be logged in to view this page.");
+        window.location.href = "login.html";
+      }
+
       const params = new URLSearchParams(window.location.search);
       const cId = parseInt(params.get("courseId"));
       const lId = parseInt(params.get("lessonId"));
@@ -73,11 +79,32 @@
       setTimeout(() => {
         const course = coursesData.find((c) => c.id === cId);
         const lesson = course.lessons.find((l) => l.id === lId);
+
+        // LOCK CHECK: prevent jumping ahead
         const progress = getProgress(cId);
+        const completed = progress.completedLessons || [];
+        const lessonIndex = course.lessons.findIndex((l) => l.id === lId);
+        // lessonIndex is zero-based; user may access lessonIndex == completed.length (next lesson)
+        if (lessonIndex > completed.length) {
+          alert("Please complete previous lessons first.");
+          window.location.href = `course-detail.html?id=${cId}`;
+          return; // stop further execution
+        }
+
         const isLessonComplete = progress.completedLessons.includes(lesson.id);
 
         document.getElementById("course-title-nav").innerText = course.title;
         document.getElementById("video-lesson-title").innerText = lesson.title;
+
+        // Save last visited lesson for the logged-in user (defensive check)
+        if (typeof saveLastVisited === "function") {
+          try {
+            saveLastVisited(cId, lId);
+          } catch (err) {
+            // keep silent in production; useful for debugging:
+            console.warn("saveLastVisited failed:", err);
+          }
+        }
 
         // Render Sidebar
         const sidebar = document.getElementById("sidebar");
