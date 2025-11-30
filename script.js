@@ -10,11 +10,20 @@ const PASS_SCORE = 3;
 
 function getUsers() {
   const users = localStorage.getItem(STORAGE_KEY_USERS);
-  return users ? JSON.parse(users) : [];
+  try {
+    return users ? JSON.parse(users) : [];
+  } catch (e) {
+    console.warn("Failed to parse users from storage:", e);
+    return [];
+  }
 }
 
 function saveUsers(users) {
-  localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+  try {
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+  } catch (e) {
+    console.error("Failed to save users to localStorage:", e);
+  }
 }
 
 function getCurrentUser() {
@@ -28,7 +37,12 @@ function loginUser(email, password) {
   const users = getUsers();
   const user = users.find((u) => u.email === email && u.password === password);
   if (user) {
-    localStorage.setItem(STORAGE_KEY_SESSION, user.email);
+    try {
+      localStorage.setItem(STORAGE_KEY_SESSION, user.email);
+    } catch (e) {
+      console.error("loginUser: could not write session to storage", e);
+      return false;
+    }
     return true;
   }
   return false;
@@ -47,12 +61,18 @@ function registerUser(name, email, password) {
   };
   users.push(newUser);
   saveUsers(users);
-  localStorage.setItem(STORAGE_KEY_SESSION, email); // Auto login
+  try {
+    localStorage.setItem(STORAGE_KEY_SESSION, email); // Auto login
+  } catch (e) {
+    console.warn("registerUser: failed to auto-login:", e);
+  }
   return true;
 }
 
 function logoutUser() {
-  localStorage.removeItem(STORAGE_KEY_SESSION);
+  try {
+    localStorage.removeItem(STORAGE_KEY_SESSION);
+  } catch (e) {}
   window.location.href = "index.html";
 }
 
@@ -74,7 +94,7 @@ function getProgressDataForUser() {
 function getProgress(courseId) {
   const user = getCurrentUser();
   if (!user) return { completedLessons: [], quizScore: null };
-  const id = courseId.toString();
+  const id = String(courseId);
   if (!user.progress) user.progress = {};
   return user.progress[id] || { completedLessons: [], quizScore: null };
 }
@@ -88,7 +108,7 @@ function saveUserProgress(courseId, courseProgressData) {
   if (userIndex === -1) return false;
 
   if (!users[userIndex].progress) users[userIndex].progress = {};
-  users[userIndex].progress[courseId.toString()] = courseProgressData;
+  users[userIndex].progress[String(courseId)] = courseProgressData;
   saveUsers(users);
   return true;
 }
@@ -97,16 +117,25 @@ function completeLesson(courseId, lessonId) {
   const user = getCurrentUser();
   if (!user) return false;
 
-  let currentProgress = getProgress(courseId);
+  const currentProgress = getProgress(courseId);
   if (!Array.isArray(currentProgress.completedLessons)) {
     currentProgress.completedLessons = [];
   }
 
-  if (!currentProgress.completedLessons.includes(lessonId)) {
-    currentProgress.completedLessons.push(lessonId);
-    currentProgress.completedLessons.sort((a, b) => a - b);
-    saveUserProgress(courseId, currentProgress);
-    return true;
+  // Ensure lessonId typed consistently (use number if source uses number)
+  const lid =
+    typeof lessonId === "string" && /^\d+$/.test(lessonId)
+      ? Number(lessonId)
+      : lessonId;
+
+  if (!currentProgress.completedLessons.includes(lid)) {
+    currentProgress.completedLessons.push(lid);
+    // keep numeric sort if numeric ids
+    currentProgress.completedLessons.sort((a, b) => {
+      if (typeof a === "number" && typeof b === "number") return a - b;
+      return String(a).localeCompare(String(b), undefined, { numeric: true });
+    });
+    return saveUserProgress(courseId, currentProgress);
   }
   return false;
 }
@@ -115,7 +144,7 @@ function completeLesson(courseId, lessonId) {
  * Save quiz score and optionally create certificate record on pass.
  * This function will:
  *  - store quizScore in the user's progress
- *  - if score >= PASS_SCORE, create and store a certificate record
+ *  - if score >= PASS_SCORE, create and store a certificate record (idempotent)
  */
 function saveQuizScore(courseId, score) {
   const user = getCurrentUser();
@@ -125,9 +154,18 @@ function saveQuizScore(courseId, score) {
   currentProgress.quizScore = score;
   saveUserProgress(courseId, currentProgress);
 
-  // If passed, create certificate record (idempotent if already created)
-  if (score >= PASS_SCORE) {
+  // If passed, create certificate record but avoid duplicate creation
+  if (score !== null && score !== undefined && score >= PASS_SCORE) {
     try {
+      // If we already have a lastCertificateId and it's present in storage, skip creating duplicate
+      if (currentProgress.lastCertificateId) {
+        const existing = findCertificateById(currentProgress.lastCertificateId);
+        if (existing && existing.valid) {
+          // already registered — nothing to do
+          return true;
+        }
+      }
+      // create a new certificate
       saveCertificateRecord(courseId, score);
     } catch (err) {
       console.warn("saveCertificateRecord failed:", err);
@@ -138,7 +176,9 @@ function saveQuizScore(courseId, score) {
 
 function calculateCourseProgress(courseId) {
   // Defensive: coursesData should be loaded beforehand
-  const course = (window.coursesData || []).find((c) => c.id === courseId);
+  const course = (window.coursesData || []).find(
+    (c) => Number(c.id) === Number(courseId)
+  );
   if (!course) return 0;
 
   const progress = getProgress(courseId);
@@ -173,13 +213,13 @@ function enrollInCourse(courseId) {
 
   if (!users[idx].progress) users[idx].progress = {};
 
-  const key = courseId.toString();
+  const key = String(courseId);
   if (!users[idx].progress[key]) {
     users[idx].progress[key] = {
       enrolled: true,
       completedLessons: [],
       quizScore: null,
-      certificates: [], // store certificate records per course
+      certificates: [],
       lastVisited: null,
     };
   } else {
@@ -217,8 +257,8 @@ function saveLastVisited(courseId, lessonId) {
   const idx = users.findIndex((u) => u.email === user.email);
   if (idx === -1) return false;
   if (!users[idx].progress) users[idx].progress = {};
-  const key = courseId.toString();
-  if (!users[idx].progress[key])
+  const key = String(courseId);
+  if (!users[idx].progress[key]) {
     users[idx].progress[key] = {
       enrolled: true,
       completedLessons: [],
@@ -226,7 +266,9 @@ function saveLastVisited(courseId, lessonId) {
       certificates: [],
       lastVisited: lessonId,
     };
-  users[idx].progress[key].lastVisited = lessonId;
+  } else {
+    users[idx].progress[key].lastVisited = lessonId;
+  }
   saveUsers(users);
   return true;
 }
@@ -242,15 +284,26 @@ function getLastVisited(courseId) {
 
 function updateAuthUI() {
   const user = getCurrentUser();
-  const navContainer = document.querySelector("nav .hidden.md\\:flex"); // Desktop Nav
+
+  // find a sensible nav container: prefer the element used on most pages,
+  // but fall back to the first nav element if not present
+  let navContainer = document.querySelector("nav .hidden.md\\:flex");
+  if (!navContainer) {
+    const nav = document.querySelector("nav");
+    if (nav) {
+      // try to find a flex container in nav or use nav itself
+      navContainer = nav.querySelector(".flex") || nav;
+    }
+  }
+
   const mobileMenu = document.getElementById("mobile-menu");
 
   if (user) {
     if (!document.getElementById("logout-btn")) {
       const html = `
-                <span class="text-gray-600 font-medium">Hi, ${
-                  user.name.split(" ")[0]
-                }</span>
+                <span class="text-gray-600 font-medium">Hi, ${escapeHtml(
+                  user.name.split(" ")[0] || ""
+                )}</span>
                 <button id="logout-btn" onclick="logoutUser()" class="text-red-500 hover:text-red-700 font-bold ml-4">Logout</button>
             `;
       if (navContainer) {
@@ -263,7 +316,9 @@ function updateAuthUI() {
       if (mobileMenu) {
         mobileMenu.innerHTML += `
                     <div class="border-t pt-2 mt-2">
-                        <p class="px-2 text-gray-500">Signed in as ${user.name}</p>
+                        <p class="px-2 text-gray-500">Signed in as ${escapeHtml(
+                          user.name
+                        )}</p>
                         <button onclick="logoutUser()" class="block w-full text-left py-2 text-red-500 font-bold">Logout</button>
                     </div>
                 `;
@@ -317,7 +372,7 @@ function saveCertificateRecord(courseId, score) {
   if (uIdx === -1) throw new Error("Current user not found in storage.");
 
   if (!users[uIdx].progress) users[uIdx].progress = {};
-  const key = courseId.toString();
+  const key = String(courseId);
   if (!users[uIdx].progress[key]) {
     users[uIdx].progress[key] = {
       enrolled: true,
@@ -330,7 +385,7 @@ function saveCertificateRecord(courseId, score) {
   if (!Array.isArray(users[uIdx].progress[key].certificates))
     users[uIdx].progress[key].certificates = [];
 
-  // if a certificate with same score & date exists we still create a new one; but avoid duplicate id
+  // Generate id and cert object
   const certId = generateCertificateId(courseId);
   const cert = {
     id: certId,
@@ -338,13 +393,12 @@ function saveCertificateRecord(courseId, score) {
     score: score,
     courseId: courseId,
     courseTitle:
-      (window.coursesData || []).find((c) => c.id === courseId)?.title || "",
+      (window.coursesData || []).find((c) => Number(c.id) === Number(courseId))
+        ?.title || "",
     issuer: "EduPro",
   };
 
   users[uIdx].progress[key].certificates.push(cert);
-
-  // Also store last certificate id at top-level of that course progress (helpful)
   users[uIdx].progress[key].lastCertificateId = certId;
 
   saveUsers(users);
@@ -384,12 +438,13 @@ function findCertificateById(certId) {
       const entry = u.progress[k];
       if (!entry || !Array.isArray(entry.certificates)) continue;
       const found = entry.certificates.find((c) => c.id === certId);
-      if (found)
+      if (found) {
         return {
           valid: true,
           cert: found,
           user: { name: u.name, email: u.email },
         };
+      }
     }
   }
   return null;
@@ -403,7 +458,11 @@ function findCertificateById(certId) {
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     // Already loaded?
-    if (document.querySelector(`script[src="${src}"]`)) {
+    if (
+      Array.from(document.scripts).some(
+        (s) => s.src && s.src.indexOf(src) !== -1
+      )
+    ) {
       resolve();
       return;
     }
@@ -446,13 +505,13 @@ function _buildCertificateElement(course, user, certRecord) {
   const to = document.createElement("div");
   to.style.marginTop = "14px";
   to.innerHTML = `<p style="font-style:italic;color:#374151;margin:0;">This certificate is proudly presented to</p>
-                  <h2 style="font-size:36px;margin:8px 0;color:#065f46;font-weight:700">${
+                  <h2 style="font-size:36px;margin:8px 0;color:#065f46;font-weight:700">${escapeHtml(
                     (user && user.name) || "Student"
-                  }</h2>
+                  )}</h2>
                   <p style="margin:8px 0;color:#374151;">for successfully completing the course</p>
-                  <h3 style="font-size:28px;margin:10px 0;color:#0f172a;font-weight:700">${
+                  <h3 style="font-size:28px;margin:10px 0;color:#0f172a;font-weight:700">${escapeHtml(
                     (course && course.title) || ""
-                  }</h3>`;
+                  )}</h3>`;
   outer.appendChild(to);
 
   // Meta row: date, score, cert id
@@ -466,12 +525,12 @@ function _buildCertificateElement(course, user, certRecord) {
     <div style="text-align:center"><div style="color:#6B7280;font-size:14px">Date</div><div style="font-weight:700">${new Date(
       certRecord.issuedOn
     ).toLocaleDateString()}</div></div>
-    <div style="text-align:center"><div style="color:#6B7280;font-size:14px">Score</div><div style="font-weight:700">${
-      certRecord.score
-    }/${(course.quiz || []).length}</div></div>
-    <div style="text-align:center"><div style="color:#6B7280;font-size:14px">Certificate ID</div><div style="font-weight:700;font-family:monospace">${
+    <div style="text-align:center"><div style="color:#6B7280;font-size:14px">Score</div><div style="font-weight:700">${escapeHtml(
+      String(certRecord.score)
+    )}/${course && course.quiz ? course.quiz.length : 0}</div></div>
+    <div style="text-align:center"><div style="color:#6B7280;font-size:14px">Certificate ID</div><div style="font-weight:700;font-family:monospace">${escapeHtml(
       certRecord.id
-    }</div></div>
+    )}</div></div>
   `;
   outer.appendChild(meta);
 
@@ -516,9 +575,9 @@ function _buildCertificateElement(course, user, certRecord) {
  * If the course doesn't have a certificate record yet, it will use the
  * last certificate record for that course (if any).
  *
- * This function dynamically loads html2canvas and jsPDF from CDN.
+ * This implementation is named with an underscore to avoid global name collisions.
  */
-async function downloadCertificatePDF(courseId, options = {}) {
+async function _downloadCertificatePDF(courseId, options = {}) {
   const user = getCurrentUser();
   if (!user) {
     alert("Please log in to download certificate.");
@@ -539,7 +598,9 @@ async function downloadCertificatePDF(courseId, options = {}) {
   }
   const certRecord = certificates[certificates.length - 1];
 
-  const course = (window.coursesData || []).find((c) => c.id === courseId);
+  const course = (window.coursesData || []).find(
+    (c) => Number(c.id) === Number(courseId)
+  );
   // Build DOM element
   const el = _buildCertificateElement(course, user, certRecord);
   // Put offscreen container
@@ -561,16 +622,23 @@ async function downloadCertificatePDF(courseId, options = {}) {
 
     // html2canvas render
     // eslint-disable-next-line no-undef
-    const canvas = await html2canvas(el, { scale: 2 });
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      scrollY: -window.scrollY,
+    });
     const imgData = canvas.toDataURL("image/png");
 
-    // Use jsPDF
-    // eslint-disable-next-line no-undef
-    const { jsPDF } = window.jspdf;
-    // Create PDF with landscape orientation and A4-like sizing
-    // Convert px to pt will be handled by jsPDF when using pixel units: we'll set unit 'px'
+    // Use jsPDF (umd exposes window.jspdf)
+    const { jsPDF } =
+      window.jspdf ||
+      (window.jspdf && window.jspdf.jsPDF
+        ? window.jspdf
+        : { jsPDF: window.jsPDF });
+    if (!jsPDF) throw new Error("jsPDF not available");
+
     const pdf = new jsPDF({
-      orientation: "landscape",
+      orientation: canvas.width > canvas.height ? "landscape" : "portrait",
       unit: "px",
       format: [canvas.width, canvas.height],
     });
@@ -599,8 +667,9 @@ async function downloadCertificatePDF(courseId, options = {}) {
 
 /**
  * Open print dialog with a print-friendly certificate page
+ * Named with underscore to avoid clashing with global wrapper.
  */
-function printCertificate(courseId) {
+function _printCertificate(courseId) {
   const user = getCurrentUser();
   if (!user) {
     alert("Please log in to print certificate.");
@@ -616,40 +685,51 @@ function printCertificate(courseId) {
     return;
   }
   const certRecord = certificates[certificates.length - 1];
-  const course = (window.coursesData || []).find((c) => c.id === courseId);
+  const course = (window.coursesData || []).find(
+    (c) => Number(c.id) === Number(courseId)
+  );
 
   const el = _buildCertificateElement(course, user, certRecord);
-  // New window
+  // Create a safe HTML string for print window
+  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificate</title></head><body style="margin:0;padding:24px;background:#fff">${el.outerHTML}</body></html>`;
+
   const printWindow = window.open("", "_blank", "noopener,noreferrer");
   if (!printWindow) {
     alert("Unable to open print window — check your popup blocker.");
     return;
   }
-  printWindow.document.write(
-    "<!doctype html><html><head><title>Certificate</title>"
-  );
-  // Inline minimal styles for printing
-  printWindow.document.write(
-    '<meta name="viewport" content="width=device-width,initial-scale=1">'
-  );
-  printWindow.document.write("</head><body>");
-  printWindow.document.body.appendChild(el.cloneNode(true));
-  printWindow.document.write("</body></html>");
 
-  // Give the browser a short time to render (small delay)
-  setTimeout(() => {
-    printWindow.focus();
-    printWindow.print();
-    // Optionally close after print:
-    // printWindow.close();
-  }, 500);
+  try {
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    // wait until content loaded
+    const t = setInterval(() => {
+      if (printWindow.document.readyState === "complete") {
+        clearInterval(t);
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch (e) {
+          console.warn("Print failed:", e);
+        }
+      }
+    }, 150);
+  } catch (e) {
+    console.error("Print window error:", e);
+    alert("Printing failed. See console for details.");
+  }
 }
 
 /* ------------------------------------------------------------------
    Certificate verification helper (for verify.html or dashboard)
    ------------------------------------------------------------------ */
 
-function verifyCertificate(certId) {
+/**
+ * Internal verify function (renamed to avoid global name collisions)
+ */
+function _verifyCertificate(certId) {
   const found = findCertificateById(certId);
   if (!found) {
     return { valid: false };
@@ -667,43 +747,109 @@ function verifyCertificate(certId) {
    HTML pages (course-detail, dashboard, quiz) can call them easily.
    ------------------------------------------------------------------ */
 
+/**
+ * Robust enrollAndStart: enrolls the current user then navigates to the
+ * appropriate lesson (resume flow: lastVisited -> next incomplete -> first)
+ */
 window.enrollAndStart = function (courseId) {
-  // AUTH CHECK: Force login if guest
-  if (!getCurrentUser()) {
-    alert("You must be logged in to enroll.");
-    window.location.href = "login.html";
-    return;
+  try {
+    const cid = Number(courseId);
+    if (!cid || isNaN(cid)) {
+      console.warn("enrollAndStart: invalid courseId:", courseId);
+      alert("Invalid course. Please try again.");
+      return false;
+    }
+
+    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+    if (!user) {
+      alert("You must be logged in to enroll.");
+      window.location.href = "login.html";
+      return false;
+    }
+
+    const course = (window.coursesData || []).find((c) => Number(c.id) === cid);
+    if (!course) {
+      alert("Course not found.");
+      return false;
+    }
+
+    const enrolled =
+      typeof enrollInCourse === "function" ? enrollInCourse(cid) : false;
+    if (!enrolled) {
+      alert("Could not enroll in the course. Please try again.");
+      return false;
+    }
+
+    // Determine target lesson
+    const progress = getProgress(cid) || {};
+    let lessonId = null;
+
+    if (progress && progress.lastVisited) {
+      lessonId = progress.lastVisited;
+    } else if (
+      progress &&
+      Array.isArray(progress.completedLessons) &&
+      progress.completedLessons.length > 0
+    ) {
+      // next after completed
+      if (Array.isArray(course.lessons) && course.lessons.length > 0) {
+        const completedCount = progress.completedLessons.length;
+        const nextIndex = Math.min(completedCount, course.lessons.length - 1);
+        lessonId = course.lessons[nextIndex].id;
+      }
+    }
+
+    if (!lessonId) {
+      lessonId =
+        (Array.isArray(course.lessons) &&
+          course.lessons[0] &&
+          course.lessons[0].id) ||
+        1;
+    }
+
+    try {
+      if (typeof saveLastVisited === "function") {
+        saveLastVisited(cid, lessonId);
+      }
+    } catch (e) {
+      console.warn("enrollAndStart: saveLastVisited failed:", e);
+    }
+
+    // Dispatch progressUpdated event
+    try {
+      window.dispatchEvent(
+        new CustomEvent("progressUpdated", {
+          detail: { courseId: cid, enrolled: true, lessonId },
+        })
+      );
+    } catch (e) {
+      console.warn("enrollAndStart: dispatch failed", e);
+    }
+
+    // Update nav UI quickly
+    if (typeof updateAuthUI === "function") {
+      try {
+        updateAuthUI();
+      } catch (e) {}
+    }
+
+    // Navigate
+    window.location.href = `lesson.html?courseId=${cid}&lessonId=${lessonId}`;
+    return true;
+  } catch (err) {
+    console.error("enrollAndStart error:", err);
+    alert(
+      "An unexpected error occurred while enrolling. See console for details."
+    );
+    return false;
   }
-
-  const course = (window.coursesData || []).find(
-    (c) => c.id === Number(courseId)
-  );
-  if (!course) {
-    alert("Course not found.");
-    return;
-  }
-
-  enrollInCourse(courseId);
-  saveLastVisited(
-    courseId,
-    course.lessons && course.lessons[0] ? course.lessons[0].id : 1
-  );
-  window.location.href = `lesson.html?courseId=${courseId}&lessonId=${
-    (course.lessons && course.lessons[0] && course.lessons[0].id) || 1
-  }`;
 };
 
-window.downloadCertificatePDF = function (courseId) {
-  downloadCertificatePDF(courseId);
-};
-
-window.printCertificate = function (courseId) {
-  printCertificate(courseId);
-};
-
+// Expose certificate helper globals (point to internal implementations)
+window.downloadCertificatePDF = _downloadCertificatePDF;
+window.printCertificate = _printCertificate;
 window.verifyCertificate = function (certId) {
-  // simple helper to show verification result
-  const res = verifyCertificate(certId);
+  const res = _verifyCertificate(certId);
   if (!res.valid) {
     alert("Certificate not found or invalid.");
   } else {
@@ -732,3 +878,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Update Navbar based on Auth state
   updateAuthUI();
 });
+
+/* ------------------------------------------------------------------
+   Utility helpers
+   ------------------------------------------------------------------ */
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
