@@ -104,7 +104,7 @@
       const currentUser = getCurrentUser(); // Get user info
 
       // Define course variable globally
-      const course = coursesData.find((c) => c.id === cId);
+      const course = (window.coursesData || []).find((c) => c.id === cId);
 
       // --- Start Immediate Rendering Logic ---
 
@@ -114,23 +114,35 @@
                 Course not found (ID: ${cId}).
             </div>`;
       } else {
-        // Retrieve progress data
-        const progress = getProgress(cId);
+        // Defensive: ensure progress shape
+        const progress = getProgress(cId) || {
+          completedLessons: [],
+          quizScore: null,
+        };
 
-        // Check enrollment status
+        // Check enrollment status (consider enrolled if explicit flag or any progress)
         const isEnrolled =
-          progress.completedLessons.length > 0 || progress.quizScore !== null;
+          Boolean(progress.enrolled) ||
+          (Array.isArray(progress.completedLessons) &&
+            progress.completedLessons.length > 0) ||
+          progress.quizScore !== null;
 
-        const totalLessons = course.lessons.length;
-        const lessonsCompleted = progress.completedLessons.length;
+        const totalLessons = Array.isArray(course.lessons)
+          ? course.lessons.length
+          : 0;
+        const lessonsCompleted = Array.isArray(progress.completedLessons)
+          ? progress.completedLessons.length
+          : 0;
         const progressPercent = calculateCourseProgress(cId);
 
         let nextLessonId =
           lessonsCompleted > 0 && lessonsCompleted < totalLessons
             ? course.lessons[lessonsCompleted].id
-            : course.lessons[0].id;
+            : (course.lessons && course.lessons[0] && course.lessons[0].id) ||
+              1;
 
         const isCourseComplete = progressPercent === 100;
+        const quizLength = Array.isArray(course.quiz) ? course.quiz.length : 0;
         const quizPassed =
           progress.quizScore !== null &&
           progress.quizScore >=
@@ -149,12 +161,11 @@
             `;
         } else if (
           lessonsCompleted === totalLessons &&
-          course.quiz &&
-          course.quiz.length > 0 &&
+          quizLength > 0 &&
           progress.quizScore === null
         ) {
           actionButtonHTML = `
-                <a href="quiz.html?courseId=${cId}" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">Take Final Quiz (${course.quiz.length} Qs)</a>
+                <a href="quiz.html?courseId=${cId}" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 transition">Take Final Quiz (${quizLength} Qs)</a>
             `;
         } else if (isEnrolled) {
           actionButtonHTML = `
@@ -185,7 +196,7 @@
                     <div class="p-8 flex-1">
                         <div class="uppercase tracking-wide text-sm text-blue-600 font-bold">${
                           course.category
-                        }</div>
+                        } • ${course.level || "N/A"}</div>
                         <h1 class="block mt-1 text-4xl leading-tight font-extrabold text-gray-900">${
                           course.title
                         }</h1>
@@ -197,9 +208,7 @@
                             <span><i class="fas fa-clock mr-1"></i> ${
                               course.duration || "N/A"
                             }</span>
-                            <span><i class="fas fa-list-ul mr-1"></i> ${
-                              course.lessons.length
-                            } Lessons</span>
+                            <span><i class="fas fa-list-ul mr-1"></i> ${totalLessons} Lessons</span>
                             <span><i class="fas fa-star text-yellow-500 mr-1"></i> ${
                               course.rating ? course.rating.toFixed(1) : "5.0"
                             } (${course.reviews || 0} reviews)</span>
@@ -207,9 +216,6 @@
                     </div>
                 </div>
                 
-                ${
-                  isEnrolled
-                    ? `
                 <div class="bg-blue-50 p-6 border-t">
                     <div class="flex justify-between items-center mb-2">
                         <span class="font-semibold text-blue-700">Course Progress</span>
@@ -219,15 +225,17 @@
                         <div class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
                     </div>
                     ${
+                      // Show quiz status messages only if quiz answered / passed/failed
                       quizPassed
                         ? '<p class="text-sm text-green-600 mt-2 font-medium"><i class="fas fa-medal"></i> Quiz Passed!</p>'
                         : progress.quizScore !== null
                         ? '<p class="text-sm text-red-600 mt-2 font-medium"><i class="fas fa-times-circle"></i> Quiz Failed. Retry possible.</p>'
-                        : ""
+                        : // not attempted: if user not enrolled or not finished lessons we can show subtle hint
+                        lessonsCompleted === totalLessons && quizLength > 0
+                        ? '<p class="text-sm text-orange-600 mt-2 font-medium">All lessons completed — quiz available.</p>'
+                        : '<p class="text-sm text-gray-600 mt-2">Enroll and complete lessons to increase progress.</p>'
                     }
-                </div>`
-                    : ""
-                }
+                </div>
 
                 <div class="p-6 border-t flex justify-end">
                     ${actionButtonHTML}
@@ -236,25 +244,30 @@
                 <div class="p-8 border-t">
                     <h2 class="text-2xl font-bold mb-4">Curriculum (${totalLessons} Lessons)</h2>
                     <div class="space-y-3">
-                        ${course.lessons
-                          .map((lesson, index) => {
-                            const isDone = progress.completedLessons.includes(
-                              lesson.id
-                            );
-                            const isNext =
-                              isEnrolled &&
-                              !isDone &&
-                              lessonsCompleted === index;
-                            return `
+                        ${
+                          Array.isArray(course.lessons) &&
+                          course.lessons.length > 0
+                            ? course.lessons
+                                .map((lesson, index) => {
+                                  const isDone =
+                                    Array.isArray(progress.completedLessons) &&
+                                    progress.completedLessons.includes(
+                                      lesson.id
+                                    );
+                                  const isNext =
+                                    isEnrolled &&
+                                    !isDone &&
+                                    lessonsCompleted === index;
+                                  return `
                                 <a href="lesson.html?courseId=${cId}&lessonId=${
-                              lesson.id
-                            }" class="flex items-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow transition ${
-                              isDone
-                                ? "border-l-4 border-green-500"
-                                : isNext
-                                ? "border-l-4 border-blue-500"
-                                : "border border-gray-200"
-                            }">
+                                    lesson.id
+                                  }" class="flex items-center p-4 bg-gray-50 rounded-lg shadow-sm hover:shadow transition ${
+                                    isDone
+                                      ? "border-l-4 border-green-500"
+                                      : isNext
+                                      ? "border-l-4 border-blue-500"
+                                      : "border border-gray-200"
+                                  }">
                                     <i class="fas ${
                                       isDone
                                         ? "fa-check-circle text-green-500"
@@ -269,15 +282,18 @@
                                         : ""
                                     }
                                 </a>`;
-                          })
-                          .join("")}
+                                })
+                                .join("")
+                            : `<div class="text-gray-500 p-4">No lessons available for this course.</div>`
+                        }
                         
                         <div class="flex items-center p-4 rounded-lg border-2 ${
                           progress.quizScore !== null
                             ? quizPassed
                               ? "border-green-500 bg-green-50"
                               : "border-red-500 bg-red-50"
-                            : lessonsCompleted === totalLessons
+                            : lessonsCompleted === totalLessons &&
+                              quizLength > 0
                             ? "border-orange-500 bg-orange-50"
                             : "border-gray-200 bg-gray-50"
                         }">
@@ -288,9 +304,7 @@
                                   : "text-red-500"
                                 : "text-orange-500"
                             } mr-4 text-xl"></i>
-                            <div class="flex-1"><h3 class="font-semibold text-gray-800">Final Course Quiz (${
-                              course.quiz.length
-                            } Questions)</h3></div>
+                            <div class="flex-1"><h3 class="font-semibold text-gray-800">Final Course Quiz (${quizLength} Questions)</h3></div>
                             ${
                               progress.quizScore !== null
                                 ? `<span class="font-bold ${
@@ -299,8 +313,9 @@
                                       : "text-red-700"
                                   }">${quizPassed ? "PASSED" : "FAILED"} (${
                                     progress.quizScore
-                                  }/5)</span>`
-                                : lessonsCompleted === totalLessons
+                                  }/${quizLength})</span>`
+                                : lessonsCompleted === totalLessons &&
+                                  quizLength > 0
                                 ? `<a href="quiz.html?courseId=${cId}" class="text-blue-600 hover:underline font-bold">Start Quiz</a>`
                                 : `<span class="text-gray-500 text-sm">Requires all lessons completed</span>`
                             }
@@ -315,7 +330,9 @@
 
       window.viewCertificate = function (courseId) {
         const modal = document.getElementById("certificate-modal");
-        const courseData = coursesData.find((c) => c.id === courseId);
+        const courseData = (window.coursesData || []).find(
+          (c) => c.id === courseId
+        );
         const pData = getProgress(courseId);
         const user = getCurrentUser(); // Get real user
 
@@ -333,16 +350,15 @@
             month: "long",
             day: "numeric",
           });
-        document.getElementById(
-          "cert-score"
-        ).innerText = `${pData.quizScore}/${courseData.quiz.length}`;
+        document.getElementById("cert-score").innerText = `${pData.quizScore}/${
+          (courseData.quiz || []).length
+        }`;
 
         // --- NEW: Insert User Name ---
-        // Find the element for student name (h2 with class text-green-600) and update it
         const nameElement = document.querySelector(
           "#certificate-content h2.text-green-600"
         );
-        if (nameElement) nameElement.innerText = user.name;
+        if (nameElement) nameElement.innerText = user.name || "Student";
 
         modal.classList.remove("hidden");
         modal.classList.add("flex");
