@@ -106,11 +106,44 @@
 
       <h2 class="text-xl font-bold mb-6 border-b pb-2">My Progress</h2>
       <div id="enrolled-grid" class="grid grid-cols-1 gap-4"></div>
+
+      <!-- CERTIFICATES SECTION -->
+      <h2 class="text-xl font-bold my-6 border-b pb-2">Certificates</h2>
+
+      <div
+        id="certificates-grid"
+        class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+      >
+        <!-- Filled dynamically -->
+      </div>
+
+      <!-- Quick verify -->
+      <div class="bg-white p-6 rounded-lg shadow-md mb-16">
+        <h3 class="text-lg font-bold mb-2">Verify a Certificate</h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Paste a Certificate ID to verify ownership and details.
+        </p>
+        <div class="flex gap-3">
+          <input
+            id="verify-input"
+            class="border rounded px-4 py-2 flex-1"
+            placeholder="Certificate ID (e.g. 1-k4j3l...)"
+          />
+          <button
+            id="verify-btn"
+            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          >
+            Verify
+          </button>
+        </div>
+        <div id="verify-result" class="mt-4 text-sm"></div>
+      </div>
     </div>
 
     <footer class="bg-gray-800 text-white py-8 text-center mt-auto">
       <p>&copy; 2025 EduPro LMS. All rights reserved.</p>
     </footer>
+
     <!-- ======= courses-json-loader (insert BEFORE script.js) ======= -->
     <script>
       (function () {
@@ -141,9 +174,17 @@
     </script>
     <!-- ================================================================ -->
     <script src="script.js"></script>
+
     <script>
       // --- DASHBOARD: user-scoped rendering (DO NOT redeclare globals from script.js) ---
       const currentUser = getCurrentUser(); // provided by script.js
+
+      // helper: create element from HTML string
+      function htmlToElement(html) {
+        const div = document.createElement("div");
+        div.innerHTML = html.trim();
+        return div.firstElementChild;
+      }
 
       if (!currentUser) {
         // Not logged in -> show access denied
@@ -336,8 +377,257 @@
             </div>
           `;
           }
+
+          // -------------------------
+          // Certificates rendering
+          // -------------------------
+          const certContainer = document.getElementById("certificates-grid");
+          certContainer.innerHTML = "";
+
+          // Use helper from script.js
+          const certs =
+            typeof listCertificatesForUser === "function"
+              ? listCertificatesForUser()
+              : [];
+
+          if (!certs || certs.length === 0) {
+            certContainer.innerHTML = `
+              <div class="col-span-1 md:col-span-3 bg-white p-6 rounded-lg border border-dashed border-gray-300 text-center text-gray-500">
+                <p class="mb-3">You have no certificates yet.</p>
+                <a href="courses.html" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Browse Courses</a>
+              </div>
+            `;
+            document.getElementById("total-certs").innerText = 0;
+          } else {
+            document.getElementById("total-certs").innerText = certs.length;
+            certs.forEach((cert) => {
+              // cert: { id, issuedOn, score, courseId, courseTitle, issuer }
+              const issuedDate = new Date(cert.issuedOn).toLocaleDateString();
+              const cardHtml = `
+                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col justify-between">
+                  <div>
+                    <h3 class="font-bold text-gray-800">${cert.courseTitle}</h3>
+                    <p class="text-sm text-gray-500 mt-1">Issued: <strong>${issuedDate}</strong></p>
+                    <p class="text-sm text-gray-500 mt-1">Score: <strong>${cert.score}</strong></p>
+                    <p class="text-xs text-gray-400 mt-3 break-words">Certificate ID: <span class="font-mono" id="cid-${cert.id}">${cert.id}</span></p>
+                  </div>
+                  <div class="mt-4 flex gap-2">
+                    <button onclick="downloadCertificatePDF(${cert.courseId})" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm"><i class="fas fa-download mr-2"></i>Download PDF</button>
+                    <button onclick="printCertificate(${cert.courseId})" class="bg-gray-800 text-white px-3 py-2 rounded hover:bg-gray-900 text-sm"><i class="fas fa-print mr-2"></i>Print</button>
+                    <button onclick="openCertPreview('${cert.id}')" class="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700 text-sm"><i class="fas fa-eye mr-2"></i>View</button>
+                    <button onclick="copyCertId('${cert.id}')" class="bg-white border border-gray-200 px-3 py-2 rounded hover:bg-gray-50 text-sm"><i class="fas fa-clipboard mr-1"></i></button>
+                  </div>
+                </div>
+              `;
+              certContainer.appendChild(htmlToElement(cardHtml));
+            });
+          }
+
+          // verify button
+          const verifyBtn = document.getElementById("verify-btn");
+          const verifyInput = document.getElementById("verify-input");
+          const verifyResult = document.getElementById("verify-result");
+
+          verifyBtn.addEventListener("click", () => {
+            const id = verifyInput.value.trim();
+            if (!id) {
+              verifyResult.innerHTML = `<span class="text-red-500">Please enter a certificate ID.</span>`;
+              return;
+            }
+            // we can use the global helper getUsers() to search
+            const users = typeof getUsers === "function" ? getUsers() : [];
+            let found = null;
+            for (const u of users) {
+              if (!u.progress) continue;
+              for (const k of Object.keys(u.progress)) {
+                const entry = u.progress[k];
+                if (!entry || !Array.isArray(entry.certificates)) continue;
+                const f = entry.certificates.find((c) => c.id === id);
+                if (f) {
+                  found = { cert: f, user: u };
+                  break;
+                }
+              }
+              if (found) break;
+            }
+
+            if (!found) {
+              verifyResult.innerHTML = `<div class="text-red-600 font-bold">Certificate not found or invalid.</div>`;
+            } else {
+              verifyResult.innerHTML = `
+                <div class="text-green-600 font-bold">Valid Certificate</div>
+                <div class="text-sm text-gray-700 mt-2">Course: <strong>${
+                  found.cert.courseTitle
+                }</strong></div>
+                <div class="text-sm text-gray-700">Student: <strong>${
+                  found.user.name
+                }</strong></div>
+                <div class="text-sm text-gray-700">Issued: <strong>${new Date(
+                  found.cert.issuedOn
+                ).toLocaleDateString()}</strong></div>
+                <div class="text-sm text-gray-700">Score: <strong>${
+                  found.cert.score
+                }</strong></div>
+              `;
+            }
+          });
+
+          // utility functions used by certificate buttons
+          window.copyCertId = function (id) {
+            if (!navigator.clipboard) {
+              // fallback
+              const el = document.getElementById(`cid-${id}`);
+              if (el) {
+                const range = document.createRange();
+                range.selectNode(el);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                try {
+                  document.execCommand("copy");
+                  alert("Certificate ID copied to clipboard.");
+                } catch (e) {
+                  alert("Copy failed. Please select and copy manually.");
+                }
+                window.getSelection().removeAllRanges();
+              }
+              return;
+            }
+            navigator.clipboard.writeText(id).then(
+              () => {
+                // small feedback
+                const btnLabel = document.getElementById(`cid-${id}`);
+                // show toast (simple)
+                alert("Certificate ID copied to clipboard.");
+              },
+              () => {
+                alert("Copy failed — please copy manually.");
+              }
+            );
+          };
+
+          window.openCertPreview = function (certId) {
+            // find certificate among user's certs (we already have 'certs')
+            const c = certs.find((x) => x.id === certId);
+            if (!c) {
+              alert("Certificate not found.");
+              return;
+            }
+            // Populate preview modal with the certificate data
+            const modal = document.getElementById("cert-preview-modal");
+            document.getElementById("cp-course").innerText = c.courseTitle;
+            document.getElementById("cp-issued").innerText = new Date(
+              c.issuedOn
+            ).toLocaleDateString();
+            document.getElementById("cp-score").innerText = `${c.score}`;
+            document.getElementById("cp-id").innerText = c.id;
+            // set data attributes for action buttons
+            document.getElementById("cp-download-btn").onclick = () =>
+              downloadCertificatePDF(c.courseId);
+            document.getElementById("cp-print-btn").onclick = () =>
+              printCertificate(c.courseId);
+            document.getElementById("cp-verify-btn").onclick = () => {
+              // perform local verification (no alert)
+              const res = (function (id) {
+                const users = typeof getUsers === "function" ? getUsers() : [];
+                for (const u of users) {
+                  if (!u.progress) continue;
+                  for (const k of Object.keys(u.progress)) {
+                    const entry = u.progress[k];
+                    if (!entry || !Array.isArray(entry.certificates)) continue;
+                    const found = entry.certificates.find((cc) => cc.id === id);
+                    if (found) return { cert: found, user: u };
+                  }
+                }
+                return null;
+              })(c.id);
+              const area = document.getElementById("cp-verify-result");
+              if (!res) {
+                area.innerHTML = `<span class="text-red-600">Not verified</span>`;
+              } else {
+                area.innerHTML = `<span class="text-green-600 font-bold">Verified</span><div class="text-sm text-gray-700 mt-2">Student: <strong>${
+                  res.user.name
+                }</strong><br/>Issued: <strong>${new Date(
+                  res.cert.issuedOn
+                ).toLocaleDateString()}</strong></div>`;
+              }
+            };
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+          };
+
+          // close modal helper
+          const closePreview = () => {
+            const modal = document.getElementById("cert-preview-modal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            document.getElementById("cp-verify-result").innerHTML = "";
+          };
+
+          document.getElementById("cp-close-btn").onclick = closePreview;
+          document.getElementById("cp-copy-id-btn").onclick = function () {
+            const id = document.getElementById("cp-id").innerText;
+            if (!id) return;
+            navigator.clipboard
+              ?.writeText(id)
+              .then(() => alert("Copied certificate ID"));
+          };
         }, 50);
       }
     </script>
+
+    <!-- Certificate Preview Modal -->
+    <div
+      id="cert-preview-modal"
+      class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-[100]"
+    >
+      <div class="bg-white rounded-lg w-full max-w-3xl p-6 relative">
+        <button
+          id="cp-close-btn"
+          class="absolute top-4 right-4 text-gray-500 hover:text-gray-900"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+        <h3 class="text-2xl font-bold mb-2">Certificate Preview</h3>
+        <div class="border rounded p-6">
+          <p class="text-sm text-gray-500">Course</p>
+          <h2 id="cp-course" class="text-xl font-bold mb-2"></h2>
+          <div class="flex gap-6 text-sm text-gray-700">
+            <div>Issued: <strong id="cp-issued"></strong></div>
+            <div>Score: <strong id="cp-score"></strong></div>
+            <div>
+              Certificate ID: <strong id="cp-id" class="font-mono"></strong>
+            </div>
+          </div>
+          <div id="cp-verify-result" class="mt-4"></div>
+        </div>
+
+        <div class="mt-4 flex gap-3">
+          <button
+            id="cp-download-btn"
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            <i class="fas fa-download mr-2"></i>Download PDF
+          </button>
+          <button
+            id="cp-print-btn"
+            class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900"
+          >
+            <i class="fas fa-print mr-2"></i>Print
+          </button>
+          <button
+            id="cp-verify-btn"
+            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            <i class="fas fa-check mr-2"></i>Verify
+          </button>
+          <button
+            id="cp-copy-id-btn"
+            class="bg-white border px-4 py-2 rounded hover:bg-gray-50"
+          >
+            <i class="fas fa-clipboard mr-2"></i>Copy ID
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

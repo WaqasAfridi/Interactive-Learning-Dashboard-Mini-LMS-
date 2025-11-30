@@ -11,15 +11,39 @@
     />
   </head>
   <body class="bg-gray-50 text-gray-800 font-sans flex flex-col min-h-screen">
+    <!-- NAV -->
     <nav class="bg-white shadow-md fixed w-full z-50 top-0 left-0">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <a href="index.html" class="text-2xl font-bold text-blue-600"
-              ><i class="fas fa-graduation-cap"></i> EduPro</a
+        <div class="flex justify-between h-16 items-center">
+          <div class="flex items-center gap-6">
+            <a
+              href="index.html"
+              class="text-2xl font-bold text-blue-600 flex items-center gap-2"
             >
+              <i class="fas fa-graduation-cap"></i><span>EduPro</span>
+            </a>
+            <!-- Search (desktop) -->
+            <div class="hidden lg:flex items-center">
+              <div class="relative">
+                <input
+                  id="global-search"
+                  aria-label="Search courses"
+                  type="search"
+                  placeholder="Search courses (e.g. Python, React)"
+                  class="w-96 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <button
+                  id="clear-search"
+                  title="Clear"
+                  class="absolute right-1 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 hidden"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="hidden md:flex items-center space-x-8">
+
+          <div class="hidden md:flex items-center space-x-6">
             <a href="index.html" class="text-blue-600 font-semibold">Home</a>
             <a href="courses.html" class="text-gray-600 hover:text-blue-600"
               >Courses</a
@@ -30,6 +54,7 @@
               >Dashboard</a
             >
           </div>
+
           <div class="md:hidden flex items-center">
             <button
               id="mobile-menu-btn"
@@ -40,6 +65,7 @@
           </div>
         </div>
       </div>
+
       <div
         id="mobile-menu"
         class="hidden md:hidden bg-white pb-4 px-4 border-t"
@@ -47,42 +73,141 @@
         <a href="index.html" class="block py-2 text-blue-600 font-bold">Home</a>
         <a href="courses.html" class="block py-2 text-gray-600">Courses</a>
         <a href="dashboard.html" class="block py-2 text-gray-600">Dashboard</a>
+        <!-- Mobile search -->
+        <div class="mt-2">
+          <input
+            id="mobile-search"
+            type="search"
+            placeholder="Search courses..."
+            class="w-full px-3 py-2 rounded border border-gray-200"
+          />
+        </div>
       </div>
     </nav>
 
+    <!-- HERO -->
     <section
       class="pt-32 pb-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white"
     >
       <div class="max-w-7xl mx-auto px-4 text-center">
-        <h1 class="text-4xl md:text-6xl font-bold mb-6">
+        <h1 class="text-4xl md:text-6xl font-bold mb-4">
           Unlock Your Potential
         </h1>
-        <p class="text-xl md:text-2xl mb-8 text-blue-100">
-          Master new skills with our interactive learning platform.
+        <p class="text-xl md:text-2xl mb-6 text-blue-100">
+          Master in-demand skills with interactive lessons, quizzes and
+          personalized progress tracking.
         </p>
-        <a
-          href="courses.html"
-          class="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition shadow-lg"
-          >Browse Courses</a
-        >
+
+        <div class="flex items-center justify-center gap-4 flex-wrap">
+          <a
+            href="courses.html"
+            class="bg-white text-blue-600 px-6 md:px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition shadow-lg"
+            >Browse Courses</a
+          >
+          <a
+            id="cta-start"
+            href="#"
+            class="bg-green-500 text-white px-6 md:px-8 py-3 rounded-full font-bold hover:bg-green-600 transition shadow-lg hidden"
+            ><i class="fas fa-play mr-2"></i> Continue Learning</a
+          >
+        </div>
+
+        <!-- quick category pills (hero) -->
+        <div class="mt-8 flex justify-center flex-wrap gap-3">
+          <button
+            data-category="All"
+            class="hero-filter-pill px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full"
+          >
+            All
+          </button>
+          <button
+            data-category="Development"
+            class="hero-filter-pill px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full"
+          >
+            Development
+          </button>
+          <button
+            data-category="Data Science"
+            class="hero-filter-pill px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full"
+          >
+            Data Science
+          </button>
+          <button
+            data-category="Design"
+            class="hero-filter-pill px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full"
+          >
+            Design
+          </button>
+          <button
+            data-category="Marketing"
+            class="hero-filter-pill px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full"
+          >
+            Marketing
+          </button>
+        </div>
       </div>
     </section>
 
-    <section class="py-16 max-w-7xl mx-auto px-4">
-      <h2 class="text-3xl font-bold mb-8 text-center">Trending Courses</h2>
+    <!-- Trending / Search results -->
+    <main class="py-12 max-w-7xl mx-auto px-4 flex-grow">
+      <!-- Controls -->
       <div
-        id="trending-grid"
-        class="grid grid-cols-1 md:grid-cols-3 gap-8"
-      ></div>
-    </section>
+        class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6"
+      >
+        <h2 class="text-2xl font-bold">Trending Courses</h2>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
+            <span>Filter:</span>
+            <select
+              id="category-select"
+              class="px-3 py-2 rounded border border-gray-200 bg-white"
+            >
+              <option value="All">All Categories</option>
+            </select>
+          </div>
 
+          <div class="flex items-center gap-2">
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Search for courses..."
+              class="px-3 py-2 rounded border border-gray-200 w-64 md:w-80"
+            />
+            <button
+              id="search-btn"
+              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div
+        id="courses-grid"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+      ></div>
+
+      <!-- Pagination / show more -->
+      <div class="mt-6 flex justify-center">
+        <button
+          id="load-more"
+          class="bg-white border border-gray-200 px-6 py-2 rounded shadow hover:shadow-md"
+        >
+          Show more courses
+        </button>
+      </div>
+    </main>
+
+    <!-- Top categories -->
     <section class="py-16 bg-gray-100">
       <div class="max-w-7xl mx-auto px-4">
         <h2 class="text-3xl font-bold mb-8 text-center">Top Categories</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <a
             href="courses.html?category=Development"
-            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition cursor-pointer transform hover:scale-105"
+            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition transform hover:scale-105"
           >
             <i class="fas fa-code text-3xl text-blue-500 mb-2"></i>
             <h3 class="font-bold">Development</h3>
@@ -90,7 +215,7 @@
 
           <a
             href="courses.html?category=Business"
-            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition cursor-pointer transform hover:scale-105"
+            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition transform hover:scale-105"
           >
             <i class="fas fa-chart-line text-3xl text-green-500 mb-2"></i>
             <h3 class="font-bold">Business</h3>
@@ -98,7 +223,7 @@
 
           <a
             href="courses.html?category=Design"
-            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition cursor-pointer transform hover:scale-105"
+            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition transform hover:scale-105"
           >
             <i class="fas fa-palette text-3xl text-pink-500 mb-2"></i>
             <h3 class="font-bold">Design</h3>
@@ -106,7 +231,7 @@
 
           <a
             href="courses.html?category=Data%20Science"
-            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition cursor-pointer transform hover:scale-105"
+            class="bg-white p-6 rounded-lg shadow text-center hover:shadow-lg transition transform hover:scale-105"
           >
             <i class="fas fa-robot text-3xl text-purple-500 mb-2"></i>
             <h3 class="font-bold">Data Science</h3>
@@ -115,8 +240,29 @@
       </div>
     </section>
 
+    <!-- Footer -->
     <footer class="bg-gray-800 text-white py-8 text-center mt-auto">
-      <p>&copy; 2025 EduPro LMS. All rights reserved.</p>
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="md:flex md:justify-between md:items-center">
+          <div class="mb-4 md:mb-0">
+            <a
+              href="index.html"
+              class="text-2xl font-bold text-white flex items-center gap-2 justify-center md:justify-start"
+            >
+              <i class="fas fa-graduation-cap"></i> EduPro
+            </a>
+            <p class="text-sm text-gray-300 mt-2">
+              © 2025 EduPro LMS — learn, practice, and earn certificates.
+            </p>
+          </div>
+
+          <div class="flex gap-4 justify-center md:justify-end">
+            <a href="#" class="text-gray-300 hover:text-white">Terms</a>
+            <a href="#" class="text-gray-300 hover:text-white">Privacy</a>
+            <a href="#" class="text-gray-300 hover:text-white">Contact</a>
+          </div>
+        </div>
+      </div>
     </footer>
 
     <!-- ======= courses-json-loader (insert BEFORE script.js) ======= -->
@@ -149,37 +295,287 @@
     </script>
     <!-- ================================================================ -->
     <script src="script.js"></script>
+
     <script>
-      const trendingContainer = document.getElementById("trending-grid");
-      // Wait for data to load then slice
-      setTimeout(() => {
-        coursesData.slice(0, 3).forEach((course) => {
-          trendingContainer.innerHTML += `
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
-                        <img src="${
-                          course.image
-                        }" class="w-full h-48 object-cover" alt="${
-            course.title
-          }">
-                        <div class="p-6 flex flex-col flex-grow">
-                            <span class="text-xs font-semibold bg-blue-100 text-blue-600 px-2 py-1 rounded-full w-fit">${
-                              course.category
-                            }</span>
-                            <h3 class="text-xl font-bold mt-2 mb-2">${
-                              course.title
-                            }</h3>
-                            <p class="text-gray-600 text-sm mb-4 flex-grow">${course.description.substring(
-                              0,
-                              80
-                            )}...</p>
-                            <a href="course-detail.html?id=${
-                              course.id
-                            }" class="block w-full text-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">View Course</a>
-                        </div>
-                    </div>
-                `;
+      // ---------- Homepage client logic ----------
+      document.addEventListener("DOMContentLoaded", () => {
+        // mobile menu toggle (script.js also does this globally, but safe here)
+        const btn = document.getElementById("mobile-menu-btn");
+        const menu = document.getElementById("mobile-menu");
+        if (btn && menu)
+          btn.addEventListener("click", () => menu.classList.toggle("hidden"));
+
+        // Elements
+        const grid = document.getElementById("courses-grid");
+        const categorySelect = document.getElementById("category-select");
+        const searchInput = document.getElementById("search-input");
+        const searchBtn = document.getElementById("search-btn");
+        const loadMoreBtn = document.getElementById("load-more");
+        const heroPills = document.querySelectorAll(".hero-filter-pill");
+        const globalSearch = document.getElementById("global-search");
+        const clearSearchBtn = document.getElementById("clear-search");
+        const mobileSearch = document.getElementById("mobile-search");
+
+        // Data + state
+        const allCourses = window.coursesData || [];
+        let filtered = [...allCourses];
+        let perPage = 6;
+        let shown = 0;
+
+        // Populate category select
+        const categories = Array.from(
+          new Set(allCourses.map((c) => c.category).filter(Boolean))
+        );
+        categories.forEach((cat) => {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          opt.innerText = cat;
+          categorySelect.appendChild(opt);
         });
-      }, 100);
+
+        // Render single course card
+        function courseCardHTML(course) {
+          // defensive
+          const lessons = Array.isArray(course.lessons)
+            ? course.lessons.length
+            : 0;
+          const progress =
+            typeof getProgress === "function"
+              ? getProgress(course.id)
+              : { completedLessons: [], quizScore: null };
+          const percent =
+            typeof calculateCourseProgress === "function"
+              ? calculateCourseProgress(course.id)
+              : 0;
+          const isEnrolled = Boolean(
+            progress &&
+              (progress.enrolled ||
+                (Array.isArray(progress.completedLessons) &&
+                  progress.completedLessons.length > 0) ||
+                progress.quizScore !== null)
+          );
+          const linkText = isEnrolled
+            ? percent === 100
+              ? "Completed"
+              : "Continue"
+            : "Start Course";
+          const btnClass = isEnrolled
+            ? percent === 100
+              ? "bg-green-600"
+              : "bg-blue-600"
+            : "bg-green-600";
+          const levelBadge = course.level
+            ? `<span class="text-xs inline-block px-2 py-1 rounded-full border border-gray-200">${course.level}</span>`
+            : "";
+          const rating = course.rating ? course.rating.toFixed(1) : "5.0";
+
+          return `
+            <article class="bg-white rounded-xl shadow-md overflow-hidden hover:-translate-y-1 transition-transform duration-200 flex flex-col h-full">
+              <div class="relative">
+                <img loading="lazy" src="${course.image}" alt="${escapeHtml(
+            course.title
+          )}" class="w-full h-44 object-cover">
+                <div class="absolute top-2 left-2">${levelBadge}</div>
+                <div class="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">${
+                  course.category || ""
+                }</div>
+              </div>
+              <div class="p-5 flex flex-col flex-grow">
+                <h3 class="text-lg font-bold mb-2">${escapeHtml(
+                  course.title
+                )}</h3>
+                <p class="text-sm text-gray-600 mb-4 flex-grow">${escapeHtml(
+                  course.description || ""
+                ).substring(0, 100)}${
+            (course.description || "").length > 100 ? "…" : ""
+          }</p>
+                <div class="flex items-center justify-between text-sm text-gray-600 mb-3">
+                  <span><i class="far fa-file-alt mr-1"></i>${lessons} Lessons</span>
+                  <span><i class="fas fa-star text-yellow-400 mr-1"></i>${rating}</span>
+                </div>
+                <div class="flex items-center justify-between gap-3 mt-auto">
+                  <a href="course-detail.html?id=${encodeURIComponent(
+                    course.id
+                  )}" class="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 text-sm">View</a>
+                  ${
+                    isEnrolled
+                      ? `<a href="lesson.html?courseId=${
+                          course.id
+                        }&lessonId=${getNextLessonId(
+                          course.id
+                        )}" class="${btnClass} text-white px-4 py-2 rounded text-sm hover:opacity-95">${linkText}</a>`
+                      : `<button onclick="enrollAndStart(${course.id})" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">Start Course</button>`
+                  }
+                </div>
+                <div class="mt-3 w-full bg-gray-200 rounded-full h-2.5">
+                  <div class="h-2.5 rounded-full bg-blue-600" style="width:${percent}%"></div>
+                </div>
+              </div>
+            </article>
+          `;
+        }
+
+        // small helper to escape html in interpolations
+        function escapeHtml(str) {
+          if (!str && str !== 0) return "";
+          return String(str)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+
+        // get next lesson id for continue link (safe fallback)
+        function getNextLessonId(courseId) {
+          try {
+            const course = (window.coursesData || []).find(
+              (c) => c.id === Number(courseId)
+            );
+            const progress =
+              typeof getProgress === "function"
+                ? getProgress(courseId)
+                : { completedLessons: [] };
+            const completed = Array.isArray(progress.completedLessons)
+              ? progress.completedLessons.length
+              : 0;
+            if (
+              !course ||
+              !Array.isArray(course.lessons) ||
+              course.lessons.length === 0
+            )
+              return 1;
+            const nextIndex = Math.min(completed, course.lessons.length - 1);
+            return course.lessons[nextIndex].id;
+          } catch (e) {
+            return 1;
+          }
+        }
+
+        // render grid with pagination (incremental)
+        function renderGrid(reset = false) {
+          if (reset) {
+            shown = 0;
+            grid.innerHTML = "";
+          }
+          const toShow = filtered.slice(shown, shown + perPage);
+          toShow.forEach((course) => {
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = courseCardHTML(course);
+            grid.appendChild(wrapper.firstElementChild);
+          });
+          shown += toShow.length;
+
+          // toggle load more
+          if (shown >= filtered.length) {
+            loadMoreBtn.classList.add("hidden");
+          } else {
+            loadMoreBtn.classList.remove("hidden");
+          }
+        }
+
+        // filters
+        function applyFilters() {
+          const cat = categorySelect.value || "All";
+          const q = (searchInput.value || "").trim().toLowerCase();
+          filtered = allCourses.filter((c) => {
+            const inCategory = cat === "All" || c.category === cat;
+            const matchesSearch =
+              !q ||
+              `${c.title} ${c.description || ""} ${c.category || ""}`
+                .toLowerCase()
+                .includes(q);
+            return inCategory && matchesSearch;
+          });
+          renderGrid(true);
+        }
+
+        // search helpers
+        searchBtn.addEventListener("click", () => applyFilters());
+        searchInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") applyFilters();
+        });
+        categorySelect.addEventListener("change", () => applyFilters());
+        loadMoreBtn.addEventListener("click", () => renderGrid());
+
+        // hero pill filters
+        heroPills.forEach((p) =>
+          p.addEventListener("click", (ev) => {
+            const cat = ev.currentTarget.getAttribute("data-category") || "All";
+            categorySelect.value = cat;
+            applyFilters();
+            // subtle scroll
+            document
+              .getElementById("courses-grid")
+              .scrollIntoView({ behavior: "smooth", block: "start" });
+          })
+        );
+
+        // global search (desktop)
+        if (globalSearch) {
+          globalSearch.addEventListener("input", (e) => {
+            clearSearchBtn.classList.toggle("hidden", !e.target.value);
+          });
+          globalSearch.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              searchInput.value = globalSearch.value;
+              applyFilters();
+            }
+          });
+          document
+            .getElementById("clear-search")
+            .addEventListener("click", () => {
+              globalSearch.value = "";
+              searchInput.value = "";
+              applyFilters();
+              clearSearchBtn.classList.add("hidden");
+            });
+        }
+
+        // mobile search
+        if (mobileSearch) {
+          mobileSearch.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              searchInput.value = mobileSearch.value;
+              applyFilters();
+              if (!menu.classList.contains("hidden"))
+                menu.classList.add("hidden");
+            }
+          });
+        }
+
+        // initial show: trending first 6
+        filtered = allCourses.slice(); // copy
+        renderGrid(true);
+
+        // If the user has active progress show CTA continue
+        try {
+          const user =
+            typeof getCurrentUser === "function" ? getCurrentUser() : null;
+          if (user) {
+            // find a course with progress > 0
+            const progData =
+              typeof getProgressDataForUser === "function"
+                ? getProgressDataForUser()
+                : {};
+            const keys = Object.keys(progData || {});
+            if (keys.length > 0) {
+              // pick the first enrolled to continue
+              const k = keys[0];
+              const entry = progData[k];
+              const course = allCourses.find((c) => String(c.id) === String(k));
+              if (course) {
+                const nextLessonId = getNextLessonId(course.id);
+                const cta = document.getElementById("cta-start");
+                cta.href = `lesson.html?courseId=${course.id}&lessonId=${nextLessonId}`;
+                cta.classList.remove("hidden");
+              }
+            }
+          }
+        } catch (e) {
+          // noop
+        }
+      });
     </script>
   </body>
 </html>
