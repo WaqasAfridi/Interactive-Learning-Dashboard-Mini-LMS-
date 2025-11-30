@@ -112,6 +112,17 @@
 
     <script src="script.js"></script>
     <script>
+      // Small helpers & defensive wrappers
+      function escapeHtml(str) {
+        if (typeof str !== "string") return str == null ? "" : String(str);
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
       // Guard: ensure script.js helpers exist
       if (typeof getProgress !== "function") {
         console.error(
@@ -120,7 +131,7 @@
       }
 
       // Ensure user is authenticated (script.js provides getCurrentUser)
-      if (!getCurrentUser || !getCurrentUser()) {
+      if (typeof getCurrentUser !== "function" || !getCurrentUser()) {
         alert("You must be logged in to view this page.");
         window.location.href = "login.html";
       }
@@ -131,7 +142,9 @@
 
       // small live region for screen-reader updates
       const srLiveHtml = `<div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>`;
-      document.body.insertAdjacentHTML("beforeend", srLiveHtml);
+      if (!document.getElementById("sr-live")) {
+        document.body.insertAdjacentHTML("beforeend", srLiveHtml);
+      }
 
       // We'll keep references to current course/lesson globally for handlers
       let currentCourse = null;
@@ -141,18 +154,36 @@
         return document.getElementById("sr-live");
       }
 
+      function safeProgress(courseId) {
+        if (typeof getProgress === "function") {
+          try {
+            const p = getProgress(courseId) || {};
+            if (!Array.isArray(p.completedLessons)) p.completedLessons = [];
+            return p;
+          } catch (e) {
+            console.warn("getProgress failed", e);
+          }
+        }
+        return { completedLessons: [], quizScore: null };
+      }
+
       function renderSidebar(progress) {
         const sidebar = document.getElementById("sidebar");
-        const lessons = currentCourse.lessons || [];
-        sidebar.innerHTML = `
-          <div class="p-4 font-bold text-gray-700 border-b bg-gray-100">Course Content (${
-            lessons.length
-          } Lessons)</div>
-          ${lessons
-            .map((l) => {
-              const isDone = progress.completedLessons.includes(l.id);
-              const isActive = l.id === currentLesson.id;
-              return `
+        if (!sidebar) return;
+        const lessons = Array.isArray(currentCourse.lessons)
+          ? currentCourse.lessons
+          : [];
+        const completed = Array.isArray(progress.completedLessons)
+          ? progress.completedLessons
+          : [];
+        const currentLessonId = currentLesson && currentLesson.id;
+
+        const header = `<div class="p-4 font-bold text-gray-700 border-b bg-gray-100">Course Content (${lessons.length} Lessons)</div>`;
+        const items = lessons
+          .map((l) => {
+            const isDone = completed.includes(l.id);
+            const isActive = l.id === currentLessonId;
+            return `
                 <a href="lesson.html?courseId=${cId}&lessonId=${l.id}"
                    class="block p-4 border-b text-sm transition ${
                      isActive
@@ -166,25 +197,29 @@
                         ? "fa-check-circle text-green-500"
                         : "fa-circle text-gray-300"
                     } mr-2 text-xs" aria-hidden="true"></i>
-                    <span class="${isActive ? "font-bold" : ""}">${
-                l.title
-              }</span>
+                    <span class="${isActive ? "font-bold" : ""}">${escapeHtml(
+              l.title
+            )}</span>
                   </div>
                 </a>
               `;
-            })
-            .join("")}
-        `;
+          })
+          .join("");
+        sidebar.innerHTML = header + items;
       }
 
       function renderLessonDetails() {
+        if (!currentCourse || !currentLesson) return;
         const course = currentCourse;
         const lesson = currentLesson;
-        const progress = getProgress(cId);
-        const totalIndex =
-          course.lessons.findIndex((l) => l.id === lesson.id) + 1;
+        const progress = safeProgress(cId);
+        const totalIndex = Array.isArray(course.lessons)
+          ? course.lessons.findIndex((l) => l.id === lesson.id) + 1
+          : 1;
 
-        const isLessonComplete = progress.completedLessons.includes(lesson.id);
+        const isLessonComplete = Array.isArray(progress.completedLessons)
+          ? progress.completedLessons.includes(lesson.id)
+          : false;
 
         // Determine button state
         const btnText = isLessonComplete ? "Completed" : "Mark Completed";
@@ -192,13 +227,18 @@
           ? "bg-green-500 hover:bg-green-600 cursor-not-allowed"
           : "bg-green-600 hover:bg-green-700";
 
-        // render content
-        document.getElementById("lesson-details").innerHTML = `
+        const detailsNode = document.getElementById("lesson-details");
+        if (!detailsNode) return;
+
+        // render content (escape inserted values)
+        detailsNode.innerHTML = `
           <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4">
             <div>
-              <h1 class="text-2xl font-bold text-gray-900">${lesson.title}</h1>
+              <h1 class="text-2xl font-bold text-gray-900">${escapeHtml(
+                lesson.title
+              )}</h1>
               <p class="text-gray-500 text-sm">Lesson ${totalIndex} of ${
-          course.lessons.length
+          Array.isArray(course.lessons) ? course.lessons.length : 1
         }</p>
             </div>
             <button id="complete-btn" aria-pressed="${isLessonComplete}" ${
@@ -209,7 +249,7 @@
           </div>
 
           <article class="prose max-w-none text-gray-700 leading-relaxed">
-            <p class="text-lg">${lesson.content}</p>
+            <p class="text-lg">${escapeHtml(lesson.content || "")}</p>
             <h3 class="font-bold text-xl mt-6 mb-2">Key Takeaways</h3>
             <ul class="list-disc pl-5 space-y-2">
               <li>Understanding the core concepts efficiently.</li>
@@ -223,7 +263,7 @@
           <div id="complete-anim-anchor" class="fixed top-6 right-6 z-50 pointer-events-none"></div>
         `;
 
-        // attach button handler
+        // attach button handler (safe attach)
         const btn = document.getElementById("complete-btn");
         if (btn) {
           btn.addEventListener("click", () => markComplete());
@@ -234,20 +274,22 @@
       }
 
       function updateNavigationButtons() {
+        if (!currentCourse || !currentLesson) return;
         const course = currentCourse;
-        const progress = getProgress(cId);
-        const lessonIndex = course.lessons.findIndex(
-          (l) => l.id === currentLesson.id
-        );
-        const isLastLesson = lessonIndex === course.lessons.length - 1;
+        const progress = safeProgress(cId);
+        const lessons = Array.isArray(course.lessons) ? course.lessons : [];
+        const lessonIndex = lessons.findIndex((l) => l.id === currentLesson.id);
+        const isLastLesson = lessonIndex === lessons.length - 1;
         const allLessonsCompleted =
-          progress.completedLessons.length === course.lessons.length;
+          Array.isArray(progress.completedLessons) &&
+          progress.completedLessons.length === lessons.length;
         const linkArea = document.getElementById("quiz-link-area");
+        if (!linkArea) return;
 
         if (
           allLessonsCompleted &&
-          progress.quizScore === null &&
-          course.quiz &&
+          (progress.quizScore === null || progress.quizScore === undefined) &&
+          Array.isArray(course.quiz) &&
           course.quiz.length > 0
         ) {
           linkArea.innerHTML = `
@@ -256,7 +298,11 @@
                 Start Final Quiz &rarr;
             </a>
           `;
-        } else if (allLessonsCompleted && progress.quizScore !== null) {
+        } else if (
+          allLessonsCompleted &&
+          progress.quizScore !== null &&
+          progress.quizScore !== undefined
+        ) {
           linkArea.innerHTML = `
             <h3 class="text-2xl font-bold text-green-600 mb-4">Course Complete!</h3>
             <a href="dashboard.html" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition">
@@ -273,11 +319,11 @@
       // Render everything (sidebar + main) from currentCourse/currentLesson state
       function renderAll() {
         if (!currentCourse || !currentLesson) return;
-        document.getElementById("course-title-nav").innerText =
-          currentCourse.title;
-        document.getElementById("video-lesson-title").innerText =
-          currentLesson.title;
-        const progress = getProgress(cId);
+        const progress = safeProgress(cId);
+        const titleNode = document.getElementById("course-title-nav");
+        if (titleNode) titleNode.innerText = currentCourse.title || "Course";
+        const videoTitle = document.getElementById("video-lesson-title");
+        if (videoTitle) videoTitle.innerText = currentLesson.title || "";
         renderSidebar(progress);
         renderLessonDetails();
       }
@@ -288,7 +334,18 @@
         if (!btn || btn.disabled) return;
 
         // 1) Try to mark complete in storage
-        const ok = completeLesson(cId, lId);
+        let ok = false;
+        if (typeof completeLesson === "function") {
+          try {
+            ok = completeLesson(cId, lId);
+          } catch (e) {
+            console.warn("completeLesson threw:", e);
+            ok = false;
+          }
+        } else {
+          console.warn("completeLesson not defined");
+        }
+
         if (!ok) {
           // If it returned false, it may already be complete; just refresh UI
           const sr = getSRLive();
@@ -316,15 +373,21 @@
           el.innerHTML = `<i class="fas fa-check-circle text-green-500 text-2xl"></i>`;
           anchor.appendChild(el);
           setTimeout(() => {
-            el.style.transition = "opacity 350ms ease";
-            el.style.opacity = "0";
-            setTimeout(() => anchor.removeChild(el), 380);
+            try {
+              el.style.transition = "opacity 350ms ease";
+              el.style.opacity = "0";
+              setTimeout(() => {
+                if (el && el.parentNode === anchor) anchor.removeChild(el);
+              }, 380);
+            } catch (e) {
+              // ignore
+            }
           }, 700);
         }
 
         // 3) Save last visited as current lesson (keeps dashboard updated)
         try {
-          saveLastVisited(cId, lId);
+          if (typeof saveLastVisited === "function") saveLastVisited(cId, lId);
         } catch (e) {
           console.warn("saveLastVisited failed:", e);
         }
@@ -345,13 +408,15 @@
 
         // 6) Navigation: offer to go to next lesson (but only if not last)
         const courseObj = currentCourse;
-        const lessonIndex = courseObj.lessons.findIndex((l) => l.id === lId);
-        const isLastLesson = lessonIndex === courseObj.lessons.length - 1;
+        const lessons = Array.isArray(courseObj.lessons)
+          ? courseObj.lessons
+          : [];
+        const lessonIndex = lessons.findIndex((l) => l.id === lId);
+        const isLast = lessonIndex === lessons.length - 1;
 
-        if (!isLastLesson) {
-          const nextId = courseObj.lessons[lessonIndex + 1].id;
-          // ask the user
-          if (confirm("Lesson Completed! Go to the next lesson?")) {
+        if (!isLast) {
+          const nextId = lessons[lessonIndex + 1]?.id;
+          if (nextId && confirm("Lesson Completed! Go to the next lesson?")) {
             // replace state to avoid piling history
             window.location.replace(
               `lesson.html?courseId=${cId}&lessonId=${nextId}`
@@ -361,9 +426,10 @@
           // else: stay on same page, UI is already updated
         } else {
           // last lesson: if all lessons complete, prompt to take quiz
-          const progressNow = getProgress(cId);
+          const progressNow = safeProgress(cId);
           if (
-            progressNow.completedLessons.length === courseObj.lessons.length
+            Array.isArray(progressNow.completedLessons) &&
+            progressNow.completedLessons.length === lessons.length
           ) {
             alert(
               "Congratulations! All lessons are complete. Proceed to the Final Quiz."
@@ -377,7 +443,7 @@
       // initial boot: check params and render
       (function init() {
         // validate params
-        if (!cId || !lId) {
+        if (!cId || !lId || isNaN(cId) || isNaN(lId)) {
           alert("Error: Course or Lesson not found.");
           window.location.href = "courses.html";
           return;
@@ -391,6 +457,16 @@
           return;
         }
 
+        // ensure lessons array exists
+        if (
+          !Array.isArray(currentCourse.lessons) ||
+          currentCourse.lessons.length === 0
+        ) {
+          alert("This course has no lessons yet.");
+          window.location.href = `course-detail.html?id=${cId}`;
+          return;
+        }
+
         currentLesson = currentCourse.lessons.find((l) => l.id === lId);
         if (!currentLesson) {
           alert("Error: Lesson not found.");
@@ -399,8 +475,10 @@
         }
 
         // LOCK CHECK: prevent jumping ahead
-        const progress = getProgress(cId);
-        const completed = progress.completedLessons || [];
+        const progress = safeProgress(cId);
+        const completed = Array.isArray(progress.completedLessons)
+          ? progress.completedLessons
+          : [];
         const lessonIndex = currentCourse.lessons.findIndex(
           (l) => l.id === lId
         );
@@ -413,7 +491,7 @@
 
         // Save last visited (defensive), so dashboard shows it
         try {
-          saveLastVisited(cId, lId);
+          if (typeof saveLastVisited === "function") saveLastVisited(cId, lId);
         } catch (e) {
           /* ignore */
         }
@@ -430,6 +508,9 @@
               // optional: open a modal with actual video later
               alert("Video placeholder — implement video player here.");
             }
+          });
+          videoArea.addEventListener("click", () => {
+            alert("Video placeholder — implement video player here.");
           });
         }
       })();
